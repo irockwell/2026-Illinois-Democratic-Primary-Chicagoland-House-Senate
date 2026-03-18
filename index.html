@@ -59,6 +59,44 @@
   .info-bar { height: 8px; border-radius: 4px; min-width: 2px; }
   .info-panel .meta { font-size: 11px; color: #888; margin-top: 10px; border-top: 1px solid #eee; padding-top: 8px; }
 
+  #muni-search {
+    width: 100%; padding: 6px 10px; border: 1.5px solid #ccc; border-radius: 6px;
+    font-size: 13px; outline: none;
+  }
+  #muni-search:focus { border-color: #1a1a2e; }
+  #muni-dropdown {
+    position: absolute; left: 0; right: 0; top: 100%; background: white;
+    border-radius: 0 0 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    max-height: 200px; overflow-y: auto; display: none; z-index: 1001;
+  }
+  .muni-option {
+    padding: 6px 10px; font-size: 13px; cursor: pointer;
+  }
+  .muni-option:hover { background: #f0f0f5; }
+
+  .muni-panel {
+    position: absolute; bottom: 30px; right: 12px; z-index: 1000;
+    background: white; border-radius: 8px; padding: 16px 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2); min-width: 300px; max-width: 360px;
+    display: none;
+  }
+  .muni-panel h3 { font-size: 15px; margin-bottom: 4px; color: #1a1a2e; }
+  .muni-panel .muni-precincts { font-size: 11px; color: #888; margin-bottom: 8px; }
+  .muni-panel .winner-tag {
+    display: inline-block; padding: 3px 10px; border-radius: 4px;
+    font-size: 12px; font-weight: 700; color: white; margin-bottom: 10px;
+  }
+  .muni-panel table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .muni-panel td { padding: 3px 0; vertical-align: middle; }
+  .muni-panel td:last-child { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .muni-panel .bar-cell { width: 70px; padding: 0 6px; }
+  .muni-panel .meta { font-size: 11px; color: #888; margin-top: 10px; border-top: 1px solid #eee; padding-top: 8px; }
+  .muni-panel .close-btn {
+    position: absolute; top: 8px; right: 12px; cursor: pointer;
+    font-size: 18px; color: #999; background: none; border: none; line-height: 1;
+  }
+  .muni-panel .close-btn:hover { color: #333; }
+
   .muni-label {
     background: none; border: none; box-shadow: none;
     color: #1a1a2e; font-size: 11px; font-weight: 700;
@@ -79,7 +117,13 @@
     <span class="race-btn active" data-race="race6">U.S. Senate</span>
     <span class="race-btn" data-race="race7">U.S. Rep, 7th Dist.</span>
   </div>
+  <div style="margin-top:8px;position:relative">
+    <input type="text" id="muni-search" placeholder="Search municipality..." autocomplete="off" />
+    <div id="muni-dropdown"></div>
+  </div>
 </div>
+
+<div class="muni-panel" id="muni-panel"></div>
 
 <div class="legend" id="legend"></div>
 <div class="info-panel" id="info-panel"></div>
@@ -219,6 +263,11 @@ function onEachFeature(feature, layer) {
   });
 }
 
+// Create pane for municipality borders above overlays but below tooltips
+map.createPane('muniPane');
+map.getPane('muniPane').style.zIndex = 450;
+map.getPane('muniPane').style.pointerEvents = 'none';
+
 // Load both data files
 Promise.all([
   fetch('election_data.json').then(function(r) { if (!r.ok) throw new Error('election_data: ' + r.status); return r.json(); }),
@@ -229,10 +278,11 @@ Promise.all([
   geoLayer = L.geoJSON(eData, { style: getStyle, onEachFeature: onEachFeature }).addTo(map);
   map.fitBounds(geoLayer.getBounds());
   buildLegend();
+  buildMuniList();
 
   var muniLayer = L.geoJSON(muniData, {
-    style: { fillColor: 'transparent', fillOpacity: 0, weight: 2, color: '#1a1a2e', opacity: 0.45 },
-    interactive: false,
+    style: { fillColor: 'transparent', fillOpacity: 0, weight: 2.5, color: '#1a1a2e', opacity: 0.5 },
+    interactive: false, pane: 'muniPane',
     onEachFeature: function(feature, layer) {
       if (feature.properties.name) {
         layer.bindTooltip(feature.properties.name, {
@@ -256,6 +306,119 @@ Promise.all([
   updateLabels();
 }).catch(function(err) { console.error('Load error:', err); alert('Failed to load data: ' + err.message); });
 
+// Municipality search and aggregation
+var allMunis = [];
+
+function buildMuniList() {
+  if (!electionData) return;
+  var muniSet = new Set();
+  electionData.features.forEach(function(f) {
+    var m = f.properties.municipality;
+    if (m && m !== 'Unincorporated') muniSet.add(m);
+  });
+  allMunis = Array.from(muniSet).sort();
+}
+
+function getMuniTotals(muniName) {
+  var cfg = RACE_CONFIG[currentRace];
+  var totals = {};
+  cfg.candidates.forEach(function(c) { totals[c] = 0; });
+  var registered = 0, ballots = 0, precinctCount = 0;
+  electionData.features.forEach(function(f) {
+    var p = f.properties;
+    if (p.municipality === muniName && p[cfg.flag]) {
+      precinctCount++;
+      registered += p[cfg.prefix + "registered"] || 0;
+      ballots += p[cfg.prefix + "ballots"] || 0;
+      cfg.candidates.forEach(function(c) {
+        totals[c] += p[cfg.prefix + c] || 0;
+      });
+    }
+  });
+  var total = 0;
+  cfg.candidates.forEach(function(c) { total += totals[c]; });
+  return { totals: totals, total: total, registered: registered, ballots: ballots, precinctCount: precinctCount };
+}
+
+function showMuniPanel(muniName) {
+  var cfg = RACE_CONFIG[currentRace];
+  var panel = document.getElementById("muni-panel");
+  var data = getMuniTotals(muniName);
+  if (data.precinctCount === 0) { panel.style.display = "none"; return; }
+
+  var cVotes = cfg.candidates
+    .map(function(c) { return { name: c, votes: data.totals[c] }; })
+    .sort(function(a, b) { return b.votes - a.votes; });
+  var maxV = cVotes[0].votes;
+  var winner = cVotes[0].name;
+  var winnerPct = data.total > 0 ? (cVotes[0].votes / data.total * 100).toFixed(1) : 0;
+  var winnerColor = getCandidateColor(winner, currentRace);
+
+  var rows = "";
+  cVotes.forEach(function(cv) {
+    if (cv.votes === 0) return;
+    var pct = data.total > 0 ? (cv.votes / data.total * 100).toFixed(1) : 0;
+    var barW = maxV > 0 ? (cv.votes / maxV * 100) : 0;
+    rows += '<tr><td>' + cv.name + '</td><td class="bar-cell"><div class="info-bar" style="width:' +
+      barW + '%;background:' + getCandidateColor(cv.name, currentRace) + '"></div></td><td>' +
+      cv.votes.toLocaleString() + ' (' + pct + '%)</td></tr>';
+  });
+
+  var turnout = data.registered > 0 ? (data.ballots / data.registered * 100).toFixed(1) : "—";
+
+  panel.innerHTML = '<button class="close-btn" onclick="document.getElementById(\'muni-panel\').style.display=\'none\'">&times;</button>' +
+    '<h3>' + muniName + '</h3>' +
+    '<div class="muni-precincts">' + data.precinctCount + ' precincts</div>' +
+    '<div class="winner-tag" style="background:' + winnerColor + '">' + winner + ' — ' + winnerPct + '%</div>' +
+    '<table>' + rows + '</table>' +
+    '<div class="meta">Registered: ' + data.registered.toLocaleString() +
+    ' &nbsp;|&nbsp; Ballots: ' + data.ballots.toLocaleString() +
+    ' &nbsp;|&nbsp; Turnout: ' + turnout + '%</div>';
+  panel.style.display = "block";
+}
+
+var searchInput = document.getElementById('muni-search');
+var dropdown = document.getElementById('muni-dropdown');
+var selectedMuni = null;
+
+searchInput.addEventListener('input', function() {
+  var q = this.value.toLowerCase().trim();
+  if (q.length === 0) { dropdown.style.display = 'none'; return; }
+  var matches = allMunis.filter(function(m) { return m.toLowerCase().indexOf(q) >= 0; });
+  if (matches.length === 0) { dropdown.style.display = 'none'; return; }
+  dropdown.innerHTML = matches.slice(0, 10).map(function(m) {
+    return '<div class="muni-option">' + m + '</div>';
+  }).join('');
+  dropdown.style.display = 'block';
+  dropdown.querySelectorAll('.muni-option').forEach(function(opt) {
+    opt.addEventListener('click', function() {
+      var name = this.textContent;
+      searchInput.value = name;
+      dropdown.style.display = 'none';
+      selectedMuni = name;
+      showMuniPanel(name);
+    });
+  });
+});
+
+searchInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    var q = this.value.toLowerCase().trim();
+    var match = allMunis.find(function(m) { return m.toLowerCase() === q; });
+    if (!match) match = allMunis.find(function(m) { return m.toLowerCase().indexOf(q) >= 0; });
+    if (match) {
+      searchInput.value = match;
+      dropdown.style.display = 'none';
+      selectedMuni = match;
+      showMuniPanel(match);
+    }
+  }
+});
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.controls')) dropdown.style.display = 'none';
+});
+
 document.querySelectorAll('.race-btn').forEach(btn => {
   btn.addEventListener('click', function() {
     document.querySelectorAll('.race-btn').forEach(b => b.classList.remove('active'));
@@ -264,6 +427,7 @@ document.querySelectorAll('.race-btn').forEach(btn => {
     if (geoLayer) geoLayer.setStyle(getStyle);
     buildLegend();
     document.getElementById("info-panel").style.display = "none";
+    if (selectedMuni) showMuniPanel(selectedMuni);
   });
 });
 
