@@ -75,7 +75,7 @@
   .muni-option:hover { background: #f0f0f5; }
 
   .muni-panel {
-    position: absolute; bottom: 30px; right: 12px; z-index: 1000;
+    position: absolute; top: 12px; right: 12px; z-index: 1001;
     background: white; border-radius: 8px; padding: 16px 20px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.2); min-width: 300px; max-width: 360px;
     display: none;
@@ -152,7 +152,7 @@ const COLORS = [
 ];
 const NO_DATA_COLOR = "#e5e7eb";
 
-let map, geoLayer, electionData;
+let map, geoLayer, electionData, muniLayerRefRef;
 let currentRace = "race6";
 
 map = L.map('map', { zoomControl: true }).setView([41.85, -87.85], 11);
@@ -247,6 +247,13 @@ function buildInfoPanel(props) {
     ' &nbsp;|&nbsp; Ballots: ' + props[cfg.prefix + "ballots"].toLocaleString() +
     ' &nbsp;|&nbsp; Turnout: ' + turnout + '%</div>';
   panel.style.display = "block";
+  // Position below muni panel if visible
+  var muniPanel = document.getElementById("muni-panel");
+  if (muniPanel.style.display === 'block') {
+    panel.style.top = (muniPanel.offsetTop + muniPanel.offsetHeight + 8) + 'px';
+  } else {
+    panel.style.top = '12px';
+  }
 }
 
 function onEachFeature(feature, layer) {
@@ -254,11 +261,18 @@ function onEachFeature(feature, layer) {
     mouseover: function(e) {
       e.target.setStyle(highlightStyle());
       e.target.bringToFront();
+      var muni = feature.properties.municipality;
+      if (muni && muni !== 'Unincorporated' && !selectedMuni) {
+        showMuniPanel(muni);
+      }
       buildInfoPanel(feature.properties);
     },
     mouseout: function(e) {
       geoLayer.resetStyle(e.target);
       document.getElementById("info-panel").style.display = "none";
+      if (!selectedMuni) {
+        document.getElementById("muni-panel").style.display = "none";
+      }
     }
   });
 }
@@ -280,7 +294,7 @@ Promise.all([
   buildLegend();
   buildMuniList();
 
-  var muniLayer = L.geoJSON(muniData, {
+  muniLayerRefRef = L.geoJSON(muniData, {
     style: { fillColor: 'transparent', fillOpacity: 0, weight: 2.5, color: '#1a1a2e', opacity: 0.5 },
     interactive: false, pane: 'muniPane',
     onEachFeature: function(feature, layer) {
@@ -294,7 +308,7 @@ Promise.all([
 
   function updateLabels() {
     var show = map.getZoom() >= 12;
-    muniLayer.eachLayer(function(layer) {
+    muniLayerRef.eachLayer(function(layer) {
       var tip = layer.getTooltip();
       if (tip) {
         var el = tip.getElement();
@@ -366,7 +380,7 @@ function showMuniPanel(muniName) {
 
   var turnout = data.registered > 0 ? (data.ballots / data.registered * 100).toFixed(1) : "—";
 
-  panel.innerHTML = '<button class="close-btn" onclick="document.getElementById(\'muni-panel\').style.display=\'none\'">&times;</button>' +
+  panel.innerHTML = '<button class="close-btn" onclick="document.getElementById(\'muni-panel\').style.display=\'none\';selectedMuni=null;document.getElementById(\'muni-search\').value=\'\'">&times;</button>' +
     '<h3>' + muniName + '</h3>' +
     '<div class="muni-precincts">' + data.precinctCount + ' precincts</div>' +
     '<div class="winner-tag" style="background:' + winnerColor + '">' + winner + ' — ' + winnerPct + '%</div>' +
@@ -375,6 +389,15 @@ function showMuniPanel(muniName) {
     ' &nbsp;|&nbsp; Ballots: ' + data.ballots.toLocaleString() +
     ' &nbsp;|&nbsp; Turnout: ' + turnout + '%</div>';
   panel.style.display = "block";
+}
+
+function zoomToMuni(muniName) {
+  if (!muniLayerRef) return;
+  muniLayerRef.eachLayer(function(layer) {
+    if (layer.feature.properties.name === muniName) {
+      map.fitBounds(layer.getBounds(), { padding: [50, 50] });
+    }
+  });
 }
 
 var searchInput = document.getElementById('muni-search');
@@ -397,6 +420,7 @@ searchInput.addEventListener('input', function() {
       dropdown.style.display = 'none';
       selectedMuni = name;
       showMuniPanel(name);
+      zoomToMuni(name);
     });
   });
 });
@@ -411,6 +435,7 @@ searchInput.addEventListener('keydown', function(e) {
       dropdown.style.display = 'none';
       selectedMuni = match;
       showMuniPanel(match);
+      zoomToMuni(match);
     }
   }
 });
