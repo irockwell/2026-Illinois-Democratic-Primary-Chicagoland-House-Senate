@@ -152,7 +152,7 @@ const COLORS = [
 ];
 const NO_DATA_COLOR = "#e5e7eb";
 
-let map, geoLayer, electionData, muniLayerRefRef;
+let map, geoLayer, electionData, muniLayerRef;
 let currentRace = "race6";
 
 map = L.map('map', { zoomControl: true }).setView([41.85, -87.85], 11);
@@ -294,7 +294,7 @@ Promise.all([
   buildLegend();
   buildMuniList();
 
-  muniLayerRefRef = L.geoJSON(muniData, {
+  muniLayerRef = L.geoJSON(muniData, {
     style: { fillColor: 'transparent', fillOpacity: 0, weight: 2.5, color: '#1a1a2e', opacity: 0.5 },
     interactive: false, pane: 'muniPane',
     onEachFeature: function(feature, layer) {
