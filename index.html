@@ -213,9 +213,10 @@ function onEachFeature(feature, layer) {
 
 // Load both data files
 Promise.all([
-  fetch('election_data.json').then(r => r.json()),
-  fetch('municipalities.json').then(r => r.json())
-]).then(([eData, muniData]) => {
+  fetch('election_data.json').then(function(r) { if (!r.ok) throw new Error('election_data: ' + r.status); return r.json(); }),
+  fetch('municipalities.json').then(function(r) { if (!r.ok) throw new Error('municipalities: ' + r.status); return r.json(); })
+]).then(function(results) {
+  var eData = results[0], muniData = results[1];
   electionData = eData;
   geoLayer = L.geoJSON(eData, { style: getStyle, onEachFeature: onEachFeature }).addTo(map);
   map.fitBounds(geoLayer.getBounds());
@@ -232,7 +233,7 @@ Promise.all([
       }
     }
   }).addTo(map);
-});
+}).catch(function(err) { console.error('Load error:', err); alert('Failed to load data: ' + err.message); });
 
 document.querySelectorAll('.race-btn').forEach(btn => {
   btn.addEventListener('click', function() {
