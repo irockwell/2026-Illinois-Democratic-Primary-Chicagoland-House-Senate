@@ -230,7 +230,7 @@ Promise.all([
   map.fitBounds(geoLayer.getBounds());
   buildLegend();
 
-  L.geoJSON(muniData, {
+  var muniLayer = L.geoJSON(muniData, {
     style: { fillColor: 'transparent', fillOpacity: 0, weight: 2, color: '#1a1a2e', opacity: 0.45 },
     interactive: false,
     onEachFeature: function(feature, layer) {
@@ -241,6 +241,19 @@ Promise.all([
       }
     }
   }).addTo(map);
+
+  function updateLabels() {
+    var show = map.getZoom() >= 12;
+    muniLayer.eachLayer(function(layer) {
+      var tip = layer.getTooltip();
+      if (tip) {
+        var el = tip.getElement();
+        if (el) el.style.display = show ? '' : 'none';
+      }
+    });
+  }
+  map.on('zoomend', updateLabels);
+  updateLabels();
 }).catch(function(err) { console.error('Load error:', err); alert('Failed to load data: ' + err.message); });
 
 document.querySelectorAll('.race-btn').forEach(btn => {
