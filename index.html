@@ -71,7 +71,7 @@
 
 <div class="controls">
   <h2>March 17, 2026 Democratic Primary</h2>
-  <div class="subtitle">Suburban Cook County — Click a precinct for details</div>
+  <div class="subtitle">Suburban Cook County — Hover over a precinct for details</div>
   <div style="margin-top:6px">
     <span class="race-btn active" data-race="race6">U.S. Senate</span>
     <span class="race-btn" data-race="race7">U.S. Rep, 7th Dist.</span>
@@ -107,7 +107,6 @@ const NO_DATA_COLOR = "#e5e7eb";
 
 let map, geoLayer, electionData;
 let currentRace = "race6";
-let selectedFeature = null;
 
 map = L.map('map', { zoomControl: true }).setView([41.85, -87.85], 11);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -158,34 +157,42 @@ function buildLegend() {
   document.getElementById("legend").innerHTML = html;
 }
 
+function getDisplayName(props) {
+  var label = props.name;
+  if (props.municipality && props.municipality !== 'Unincorporated') {
+    label += ' (' + props.municipality + ')';
+  }
+  return label;
+}
+
 function buildInfoPanel(props) {
-  const cfg = RACE_CONFIG[currentRace];
-  const panel = document.getElementById("info-panel");
+  var cfg = RACE_CONFIG[currentRace];
+  var panel = document.getElementById("info-panel");
   if (!props[cfg.flag]) { panel.style.display = "none"; return; }
 
-  const total = props[cfg.prefix + "total"];
-  const winner = props[cfg.prefix + "winner"];
-  const winnerColor = getCandidateColor(winner, currentRace);
+  var total = props[cfg.prefix + "total"];
+  var winner = props[cfg.prefix + "winner"];
+  var winnerColor = getCandidateColor(winner, currentRace);
 
-  const cVotes = cfg.candidates
-    .map(c => ({ name: c, votes: props[cfg.prefix + c] || 0 }))
-    .sort((a, b) => b.votes - a.votes);
-  const maxV = cVotes[0].votes;
+  var cVotes = cfg.candidates
+    .map(function(c) { return { name: c, votes: props[cfg.prefix + c] || 0 }; })
+    .sort(function(a, b) { return b.votes - a.votes; });
+  var maxV = cVotes[0].votes;
 
-  let rows = "";
-  cVotes.forEach(cv => {
+  var rows = "";
+  cVotes.forEach(function(cv) {
     if (cv.votes === 0) return;
-    const pct = total > 0 ? (cv.votes / total * 100).toFixed(1) : 0;
-    const barW = maxV > 0 ? (cv.votes / maxV * 100) : 0;
+    var pct = total > 0 ? (cv.votes / total * 100).toFixed(1) : 0;
+    var barW = maxV > 0 ? (cv.votes / maxV * 100) : 0;
     rows += '<tr><td>' + cv.name + '</td><td class="bar-cell"><div class="info-bar" style="width:' +
       barW + '%;background:' + getCandidateColor(cv.name, currentRace) + '"></div></td><td>' +
       cv.votes.toLocaleString() + ' (' + pct + '%)</td></tr>';
   });
 
-  const turnout = props[cfg.prefix + "registered"] > 0
+  var turnout = props[cfg.prefix + "registered"] > 0
     ? (props[cfg.prefix + "ballots"] / props[cfg.prefix + "registered"] * 100).toFixed(1) : "—";
 
-  panel.innerHTML = '<h3>' + props.name + '</h3>' +
+  panel.innerHTML = '<h3>' + getDisplayName(props) + '</h3>' +
     '<div class="winner-tag" style="background:' + winnerColor + '">' + winner +
     ' — ' + props[cfg.prefix + "winner_pct"] + '%</div>' +
     '<table>' + rows + '</table>' +
@@ -197,16 +204,14 @@ function buildInfoPanel(props) {
 
 function onEachFeature(feature, layer) {
   layer.on({
-    mouseover: function(e) { e.target.setStyle(highlightStyle()); e.target.bringToFront(); },
-    mouseout: function(e) { if (selectedFeature !== feature) geoLayer.resetStyle(e.target); },
-    click: function(e) {
-      L.DomEvent.stopPropagation(e);
-      if (selectedFeature && selectedFeature._layer) geoLayer.resetStyle(selectedFeature._layer);
-      selectedFeature = feature;
-      selectedFeature._layer = e.target;
+    mouseover: function(e) {
       e.target.setStyle(highlightStyle());
       e.target.bringToFront();
       buildInfoPanel(feature.properties);
+    },
+    mouseout: function(e) {
+      geoLayer.resetStyle(e.target);
+      document.getElementById("info-panel").style.display = "none";
     }
   });
 }
@@ -242,16 +247,10 @@ document.querySelectorAll('.race-btn').forEach(btn => {
     currentRace = this.dataset.race;
     if (geoLayer) geoLayer.setStyle(getStyle);
     buildLegend();
-    if (selectedFeature) buildInfoPanel(selectedFeature.properties);
-    else document.getElementById("info-panel").style.display = "none";
+    document.getElementById("info-panel").style.display = "none";
   });
 });
 
-map.on('click', function() {
-  if (selectedFeature && selectedFeature._layer) geoLayer.resetStyle(selectedFeature._layer);
-  selectedFeature = null;
-  document.getElementById("info-panel").style.display = "none";
-});
 </script>
 </body>
 </html>
