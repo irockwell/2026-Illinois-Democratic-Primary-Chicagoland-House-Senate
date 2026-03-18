@@ -224,7 +224,7 @@ Promise.all([
 
   L.geoJSON(muniData, {
     style: { fillColor: 'transparent', fillOpacity: 0, weight: 2, color: '#1a1a2e', opacity: 0.45 },
-    interactive: true,
+    interactive: false,
     onEachFeature: function(feature, layer) {
       if (feature.properties.name) {
         layer.bindTooltip(feature.properties.name, {
