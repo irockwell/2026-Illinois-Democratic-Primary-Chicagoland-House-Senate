@@ -44,7 +44,7 @@
   .info-panel {
     position: absolute; top: 12px; right: 12px; z-index: 1000;
     background: white; border-radius: 8px; padding: 16px 20px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.2); min-width: 280px; max-width: 340px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2); width: 340px;
     display: none;
   }
   .info-panel h3 { font-size: 15px; margin-bottom: 8px; color: #1a1a2e; }
@@ -77,7 +77,7 @@
   .muni-panel {
     position: absolute; top: 12px; right: 12px; z-index: 1001;
     background: white; border-radius: 8px; padding: 16px 20px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.2); min-width: 300px; max-width: 360px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2); width: 340px;
     display: none;
   }
   .muni-panel h3 { font-size: 15px; margin-bottom: 4px; color: #1a1a2e; }
@@ -152,8 +152,8 @@ const COLORS = [
 ];
 const NO_DATA_COLOR = "#e5e7eb";
 
-let map, geoLayer, electionData, muniLayerRef;
-let currentRace = "race6";
+var map, geoLayer, electionData, muniLayerRef;
+var currentRace = "race6";
 
 map = L.map('map', { zoomControl: true }).setView([41.85, -87.85], 11);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
@@ -354,11 +354,12 @@ function getMuniTotals(muniName) {
   return { totals: totals, total: total, registered: registered, ballots: ballots, precinctCount: precinctCount };
 }
 
-function showMuniPanel(muniName) {
+function showMuniPanel(muniName, pinned) {
   var cfg = RACE_CONFIG[currentRace];
   var panel = document.getElementById("muni-panel");
   var data = getMuniTotals(muniName);
   if (data.precinctCount === 0) { panel.style.display = "none"; return; }
+  var maxCandidates = pinned ? 4 : 999;
 
   var cVotes = cfg.candidates
     .map(function(c) { return { name: c, votes: data.totals[c] }; })
@@ -369,13 +370,15 @@ function showMuniPanel(muniName) {
   var winnerColor = getCandidateColor(winner, currentRace);
 
   var rows = "";
+  var shown = 0;
   cVotes.forEach(function(cv) {
-    if (cv.votes === 0) return;
+    if (cv.votes === 0 || shown >= maxCandidates) return;
     var pct = data.total > 0 ? (cv.votes / data.total * 100).toFixed(1) : 0;
     var barW = maxV > 0 ? (cv.votes / maxV * 100) : 0;
     rows += '<tr><td>' + cv.name + '</td><td class="bar-cell"><div class="info-bar" style="width:' +
       barW + '%;background:' + getCandidateColor(cv.name, currentRace) + '"></div></td><td>' +
       cv.votes.toLocaleString() + ' (' + pct + '%)</td></tr>';
+    shown++;
   });
 
   var turnout = data.registered > 0 ? (data.ballots / data.registered * 100).toFixed(1) : "—";
@@ -419,7 +422,7 @@ searchInput.addEventListener('input', function() {
       searchInput.value = name;
       dropdown.style.display = 'none';
       selectedMuni = name;
-      showMuniPanel(name);
+      showMuniPanel(name, true);
       zoomToMuni(name);
     });
   });
@@ -434,7 +437,7 @@ searchInput.addEventListener('keydown', function(e) {
       searchInput.value = match;
       dropdown.style.display = 'none';
       selectedMuni = match;
-      showMuniPanel(match);
+      showMuniPanel(match, true);
       zoomToMuni(match);
     }
   }
@@ -452,7 +455,7 @@ document.querySelectorAll('.race-btn').forEach(btn => {
     if (geoLayer) geoLayer.setStyle(getStyle);
     buildLegend();
     document.getElementById("info-panel").style.display = "none";
-    if (selectedMuni) showMuniPanel(selectedMuni);
+    if (selectedMuni) showMuniPanel(selectedMuni, true);
   });
 });
 
