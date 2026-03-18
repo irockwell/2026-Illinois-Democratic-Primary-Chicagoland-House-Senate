@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Democratic Primary Election Results — Cook County</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  #map { width: 100%; height: 100vh; }
+
+  .controls {
+    position: absolute; top: 12px; left: 60px; z-index: 1000;
+    background: white; border-radius: 8px; padding: 14px 18px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2); max-width: 380px;
+  }
+  .controls h2 { font-size: 15px; margin-bottom: 4px; color: #1a1a2e; }
+  .controls .subtitle { font-size: 11px; color: #666; margin-bottom: 10px; }
+  .race-btn {
+    display: inline-block; padding: 7px 14px; margin: 2px 4px 2px 0;
+    border: 2px solid #1a1a2e; border-radius: 6px; cursor: pointer;
+    font-size: 12px; font-weight: 600; background: white; color: #1a1a2e;
+    transition: all 0.15s;
+  }
+  .race-btn.active { background: #1a1a2e; color: white; }
+  .race-btn:hover { background: #e8e8f0; }
+  .race-btn.active:hover { background: #2a2a4e; }
+
+  .legend {
+    position: absolute; bottom: 30px; left: 12px; z-index: 1000;
+    background: white; border-radius: 8px; padding: 14px 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2); min-width: 200px;
+  }
+  .legend h3 { font-size: 13px; margin-bottom: 8px; color: #333; }
+  .legend-item {
+    display: flex; align-items: center; margin-bottom: 4px; font-size: 12px;
+  }
+  .legend-swatch {
+    width: 16px; height: 16px; border-radius: 3px; margin-right: 8px;
+    border: 1px solid rgba(0,0,0,0.15); flex-shrink: 0;
+  }
+
+  .info-panel {
+    position: absolute; top: 12px; right: 12px; z-index: 1000;
+    background: white; border-radius: 8px; padding: 16px 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2); min-width: 280px; max-width: 340px;
+    display: none;
+  }
+  .info-panel h3 { font-size: 15px; margin-bottom: 8px; color: #1a1a2e; }
+  .info-panel .winner-tag {
+    display: inline-block; padding: 3px 10px; border-radius: 4px;
+    font-size: 12px; font-weight: 700; color: white; margin-bottom: 10px;
+  }
+  .info-panel table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .info-panel td { padding: 3px 0; vertical-align: middle; }
+  .info-panel td:last-child { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .info-panel .bar-cell { width: 70px; padding: 0 6px; }
+  .info-bar { height: 8px; border-radius: 4px; min-width: 2px; }
+  .info-panel .meta { font-size: 11px; color: #888; margin-top: 10px; border-top: 1px solid #eee; padding-top: 8px; }
+
+  .muni-tooltip {
+    background: rgba(26,26,46,0.85); color: white; border: none; border-radius: 4px;
+    padding: 4px 8px; font-size: 12px; font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+  .muni-tooltip::before { border-top-color: rgba(26,26,46,0.85) !important; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="controls">
+  <h2>March 17, 2026 Democratic Primary</h2>
+  <div class="subtitle">Suburban Cook County — Click a precinct for details</div>
+  <div style="margin-top:6px">
+    <span class="race-btn active" data-race="race6">U.S. Senate</span>
+    <span class="race-btn" data-race="race7">U.S. Rep, 7th Dist.</span>
+  </div>
+</div>
+
+<div class="legend" id="legend"></div>
+<div class="info-panel" id="info-panel"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const RACE_CONFIG = {
+  race6: {
+    title: "Senator, U.S. — DEM",
+    candidates: ["Juliana Stratton","Raja Krishnamoorthi","Robin Kelly","Kevin Ryan","Sean Brown","Bryan Maxwell","Christopher Swann","Awisi A. Bustos","Jonathan Dean","Steve Botsford Jr."],
+    prefix: "race6_",
+    flag: "has_race6"
+  },
+  race7: {
+    title: "U.S. Representative, 7th Dist. — DEM",
+    candidates: ["La Shawn K. Ford","Kina Collins","Melissa Conyears-Ervin","Anthony Driver, Jr.","Thomas Fisher","Jason Friedman","Reed Showalter","Anabel Mendoza","Richard R. Boykin","Rory Hoskins","Jazmin J. Robinson","David Ehrlich","Felix Tello"],
+    prefix: "race7_",
+    flag: "has_race7"
+  }
+};
+
+const COLORS = [
+  "#2563eb","#dc2626","#16a34a","#d97706","#7c3aed",
+  "#db2777","#0891b2","#ea580c","#4f46e5","#059669",
+  "#be123c","#7c2d12","#6d28d9"
+];
+const NO_DATA_COLOR = "#e5e7eb";
+
+let map, geoLayer, electionData;
+let currentRace = "race6";
+let selectedFeature = null;
+
+map = L.map('map', { zoomControl: true }).setView([41.85, -87.85], 11);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19
+}).addTo(map);
+
+function getCandidateColor(candidate, race) {
+  const idx = RACE_CONFIG[race].candidates.indexOf(candidate);
+  return idx >= 0 ? COLORS[idx % COLORS.length] : "#999";
+}
+
+function getStyle(feature) {
+  const p = feature.properties;
+  const cfg = RACE_CONFIG[currentRace];
+  if (!p[cfg.flag]) {
+    return { fillColor: NO_DATA_COLOR, fillOpacity: 0.25, weight: 0.4, color: "#ccc", opacity: 0.4 };
+  }
+  const pct = p[cfg.prefix + "winner_pct"];
+  const opacity = Math.min(0.85, Math.max(0.35, pct / 100 * 1.6));
+  return {
+    fillColor: getCandidateColor(p[cfg.prefix + "winner"], currentRace),
+    fillOpacity: opacity, weight: 0.7, color: "#fff", opacity: 0.7
+  };
+}
+
+function highlightStyle() {
+  return { weight: 2.5, color: "#1a1a2e", opacity: 1 };
+}
+
+function buildLegend() {
+  const cfg = RACE_CONFIG[currentRace];
+  const winners = new Set();
+  if (electionData) {
+    electionData.features.forEach(f => {
+      if (f.properties[cfg.flag]) winners.add(f.properties[cfg.prefix + "winner"]);
+    });
+  }
+  let html = '<h3>' + cfg.title + '</h3>';
+  cfg.candidates.forEach((c, i) => {
+    if (!winners.has(c) && i >= 6) return;
+    html += '<div class="legend-item"><div class="legend-swatch" style="background:' +
+      COLORS[i % COLORS.length] + '"></div><span>' + c + '</span></div>';
+  });
+  if (currentRace === "race7") {
+    html += '<div class="legend-item" style="margin-top:4px"><div class="legend-swatch" style="background:' +
+      NO_DATA_COLOR + '"></div><span style="color:#999">Not in district</span></div>';
+  }
+  document.getElementById("legend").innerHTML = html;
+}
+
+function buildInfoPanel(props) {
+  const cfg = RACE_CONFIG[currentRace];
+  const panel = document.getElementById("info-panel");
+  if (!props[cfg.flag]) { panel.style.display = "none"; return; }
+
+  const total = props[cfg.prefix + "total"];
+  const winner = props[cfg.prefix + "winner"];
+  const winnerColor = getCandidateColor(winner, currentRace);
+
+  const cVotes = cfg.candidates
+    .map(c => ({ name: c, votes: props[cfg.prefix + c] || 0 }))
+    .sort((a, b) => b.votes - a.votes);
+  const maxV = cVotes[0].votes;
+
+  let rows = "";
+  cVotes.forEach(cv => {
+    if (cv.votes === 0) return;
+    const pct = total > 0 ? (cv.votes / total * 100).toFixed(1) : 0;
+    const barW = maxV > 0 ? (cv.votes / maxV * 100) : 0;
+    rows += '<tr><td>' + cv.name + '</td><td class="bar-cell"><div class="info-bar" style="width:' +
+      barW + '%;background:' + getCandidateColor(cv.name, currentRace) + '"></div></td><td>' +
+      cv.votes.toLocaleString() + ' (' + pct + '%)</td></tr>';
+  });
+
+  const turnout = props[cfg.prefix + "registered"] > 0
+    ? (props[cfg.prefix + "ballots"] / props[cfg.prefix + "registered"] * 100).toFixed(1) : "—";
+
+  panel.innerHTML = '<h3>' + props.name + '</h3>' +
+    '<div class="winner-tag" style="background:' + winnerColor + '">' + winner +
+    ' — ' + props[cfg.prefix + "winner_pct"] + '%</div>' +
+    '<table>' + rows + '</table>' +
+    '<div class="meta">Registered: ' + props[cfg.prefix + "registered"].toLocaleString() +
+    ' &nbsp;|&nbsp; Ballots: ' + props[cfg.prefix + "ballots"].toLocaleString() +
+    ' &nbsp;|&nbsp; Turnout: ' + turnout + '%</div>';
+  panel.style.display = "block";
+}
+
+function onEachFeature(feature, layer) {
+  layer.on({
+    mouseover: function(e) { e.target.setStyle(highlightStyle()); e.target.bringToFront(); },
+    mouseout: function(e) { if (selectedFeature !== feature) geoLayer.resetStyle(e.target); },
+    click: function(e) {
+      L.DomEvent.stopPropagation(e);
+      if (selectedFeature && selectedFeature._layer) geoLayer.resetStyle(selectedFeature._layer);
+      selectedFeature = feature;
+      selectedFeature._layer = e.target;
+      e.target.setStyle(highlightStyle());
+      e.target.bringToFront();
+      buildInfoPanel(feature.properties);
+    }
+  });
+}
+
+// Load both data files
+Promise.all([
+  fetch('election_data.json').then(r => r.json()),
+  fetch('municipalities.json').then(r => r.json())
+]).then(([eData, muniData]) => {
+  electionData = eData;
+  geoLayer = L.geoJSON(eData, { style: getStyle, onEachFeature: onEachFeature }).addTo(map);
+  map.fitBounds(geoLayer.getBounds());
+  buildLegend();
+
+  L.geoJSON(muniData, {
+    style: { fillColor: 'transparent', fillOpacity: 0, weight: 2, color: '#1a1a2e', opacity: 0.45 },
+    interactive: true,
+    onEachFeature: function(feature, layer) {
+      if (feature.properties.name) {
+        layer.bindTooltip(feature.properties.name, {
+          sticky: true, direction: 'top', className: 'muni-tooltip', offset: [0, -8]
+        });
+      }
+    }
+  }).addTo(map);
+});
+
+document.querySelectorAll('.race-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.race-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    currentRace = this.dataset.race;
+    if (geoLayer) geoLayer.setStyle(getStyle);
+    buildLegend();
+    if (selectedFeature) buildInfoPanel(selectedFeature.properties);
+    else document.getElementById("info-panel").style.display = "none";
+  });
+});
+
+map.on('click', function() {
+  if (selectedFeature && selectedFeature._layer) geoLayer.resetStyle(selectedFeature._layer);
+  selectedFeature = null;
+  document.getElementById("info-panel").style.display = "none";
+});
+</script>
+</body>
+</html>
