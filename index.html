@@ -592,12 +592,41 @@ Promise.all([
   buildLegend();
   buildMuniList();
 
+  // Deduplicate municipality labels: only label each name once (use largest polygon)
+  var muniLabelSeen = {};
+  muniData.features.forEach(function(f) {
+    var name = f.properties.name;
+    if (!name) return;
+    // Estimate area from bounding box of first coordinate ring
+    var coords = f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates[0][0] : (f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] : []);
+    var area = 0;
+    if (coords.length > 0) {
+      var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      coords.forEach(function(c) { minX = Math.min(minX, c[0]); maxX = Math.max(maxX, c[0]); minY = Math.min(minY, c[1]); maxY = Math.max(maxY, c[1]); });
+      area = (maxX - minX) * (maxY - minY);
+    }
+    if (!muniLabelSeen[name] || area > muniLabelSeen[name]) {
+      muniLabelSeen[name] = area;
+    }
+  });
+  var muniLabeled = {};
   muniLayerRef = L.geoJSON(muniData, {
     style: { fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#1a1a2e', opacity: 0.5 },
     interactive: false, pane: 'muniPane',
     onEachFeature: function(feature, layer) {
-      if (feature.properties.name) {
-        layer.bindTooltip(feature.properties.name, {
+      var name = feature.properties.name;
+      if (!name) return;
+      // Only label the largest polygon for each municipality name
+      var coords = feature.geometry.type === 'MultiPolygon' ? feature.geometry.coordinates[0][0] : (feature.geometry.type === 'Polygon' ? feature.geometry.coordinates[0] : []);
+      var area = 0;
+      if (coords.length > 0) {
+        var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        coords.forEach(function(c) { minX = Math.min(minX, c[0]); maxX = Math.max(maxX, c[0]); minY = Math.min(minY, c[1]); maxY = Math.max(maxY, c[1]); });
+        area = (maxX - minX) * (maxY - minY);
+      }
+      if (!muniLabeled[name] && area >= muniLabelSeen[name]) {
+        muniLabeled[name] = true;
+        layer.bindTooltip(name, {
           permanent: true, direction: 'center', className: 'muni-label'
         });
       }
