@@ -100,8 +100,10 @@
   .muni-label {
     background: none; border: none; box-shadow: none;
     color: #1a1a2e; font-size: 11px; font-weight: 700;
-    text-shadow: -1px -1px 0 rgba(255,255,255,0.8), 1px -1px 0 rgba(255,255,255,0.8),
-                 -1px 1px 0 rgba(255,255,255,0.8), 1px 1px 0 rgba(255,255,255,0.8);
+    text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff,
+                 -1px 1px 0 #fff, 1px 1px 0 #fff,
+                 0 -1px 0 #fff, 0 1px 0 #fff,
+                 -1px 0 0 #fff, 1px 0 0 #fff;
     padding: 0; white-space: nowrap;
   }
   .muni-label::before { display: none; }
@@ -157,7 +159,7 @@ var currentRace = "race6";
 var precinctWinners = { race6: new Set(), race7: new Set() };
 
 map = L.map('map', { zoomControl: true }).setView([41.85, -87.85], 11);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19
 }).addTo(map);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
