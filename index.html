@@ -165,6 +165,7 @@
     <label style="cursor:pointer;white-space:nowrap;user-select:none">
       <input type="checkbox" class="county-toggle" value="kane" checked style="margin-right:2px;vertical-align:middle" />Kane
     </label>
+    <a href="#" id="deselect-all-counties" style="font-size:11px;margin-left:4px;white-space:nowrap">Deselect all</a>
   </div>
   <div style="margin-top:6px;display:flex;align-items:center;gap:10px">
     <label style="font-size:12px;cursor:pointer;white-space:nowrap;user-select:none">
@@ -1109,11 +1110,6 @@ document.querySelectorAll('.county-toggle').forEach(function(cb) {
     document.querySelectorAll('.county-toggle:checked').forEach(function(c) {
       activeCounties.add(c.value);
     });
-    // Ensure at least one county
-    if (activeCounties.size === 0) {
-      activeCounties.add(this.value);
-      this.checked = true;
-    }
     if (geoLayer) geoLayer.setStyle(getStyle);
     buildLegend();
     updateMuniListForRace();
@@ -1125,6 +1121,22 @@ document.querySelectorAll('.county-toggle').forEach(function(cb) {
     selectedPrecinct = null;
     selectedPrecinctLayer = null;
   });
+});
+
+document.getElementById('deselect-all-counties').addEventListener('click', function(e) {
+  e.preventDefault();
+  activeCounties.clear();
+  document.querySelectorAll('.county-toggle').forEach(function(c) { c.checked = false; });
+  if (geoLayer) geoLayer.setStyle(getStyle);
+  buildLegend();
+  updateMuniListForRace();
+  if (muniLayerRef) updateMuniBoundaries();
+  if (typeof updateChicagoBorder === 'function') updateChicagoBorder();
+  if (typeof updateCountyLabels === 'function') updateCountyLabels();
+  document.getElementById("info-panel").style.display = "none";
+  if (selectedPrecinctLayer) { geoLayer.resetStyle(selectedPrecinctLayer); }
+  selectedPrecinct = null;
+  selectedPrecinctLayer = null;
 });
 
 document.querySelectorAll('.race-btn').forEach(btn => {
