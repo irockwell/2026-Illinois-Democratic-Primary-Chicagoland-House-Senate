@@ -393,6 +393,12 @@ Promise.all([
     }
   }).addTo(map);
 
+  // Add Chicago label
+  var chicagoLabel = L.marker([41.8381, -87.6298], {
+    icon: L.divIcon({ className: 'muni-label', html: 'Chicago', iconSize: null }),
+    interactive: false, pane: 'muniPane'
+  }).addTo(map);
+
   function updateLabels() {
     var show = map.getZoom() >= 12;
     muniLayerRef.eachLayer(function(layer) {
@@ -402,6 +408,7 @@ Promise.all([
         if (el) el.style.display = show ? '' : 'none';
       }
     });
+    chicagoLabel.getElement().style.display = show ? '' : 'none';
   }
   map.on('zoomend', function() {
     updateLabels();
