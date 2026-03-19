@@ -165,8 +165,7 @@
     <label style="cursor:pointer;white-space:nowrap;user-select:none">
       <input type="checkbox" class="county-toggle" value="kane" checked style="margin-right:2px;vertical-align:middle" />Kane
     </label>
-    <a href="#" id="select-all-counties" style="font-size:11px;margin-left:4px;white-space:nowrap">Select all</a>
-    <a href="#" id="deselect-all-counties" style="font-size:11px;margin-left:2px;white-space:nowrap">Deselect all</a>
+    <a href="#" id="county-select-toggle" style="font-size:11px;margin-left:4px;white-space:nowrap">Deselect all</a>
   </div>
   <div style="margin-top:6px;display:flex;align-items:center;gap:10px">
     <label style="font-size:12px;cursor:pointer;white-space:nowrap;user-select:none">
@@ -1111,38 +1110,17 @@ document.querySelectorAll('.county-toggle').forEach(function(cb) {
     document.querySelectorAll('.county-toggle:checked').forEach(function(c) {
       activeCounties.add(c.value);
     });
-    if (geoLayer) geoLayer.setStyle(getStyle);
-    buildLegend();
-    updateMuniListForRace();
-    if (muniLayerRef) updateMuniBoundaries();
-    if (typeof updateChicagoBorder === 'function') updateChicagoBorder();
-    if (typeof updateCountyLabels === 'function') updateCountyLabels();
-    document.getElementById("info-panel").style.display = "none";
-    if (selectedPrecinctLayer) { geoLayer.resetStyle(selectedPrecinctLayer); }
-    selectedPrecinct = null;
-    selectedPrecinctLayer = null;
+    applyCountyChange();
   });
 });
 
-document.getElementById('select-all-counties').addEventListener('click', function(e) {
-  e.preventDefault();
-  document.querySelectorAll('.county-toggle').forEach(function(c) { c.checked = true; activeCounties.add(c.value); });
-  if (geoLayer) geoLayer.setStyle(getStyle);
-  buildLegend();
-  updateMuniListForRace();
-  if (muniLayerRef) updateMuniBoundaries();
-  if (typeof updateChicagoBorder === 'function') updateChicagoBorder();
-  if (typeof updateCountyLabels === 'function') updateCountyLabels();
-  document.getElementById("info-panel").style.display = "none";
-  if (selectedPrecinctLayer) { geoLayer.resetStyle(selectedPrecinctLayer); }
-  selectedPrecinct = null;
-  selectedPrecinctLayer = null;
-});
+function updateCountySelectToggle() {
+  var allCount = document.querySelectorAll('.county-toggle').length;
+  var checkedCount = document.querySelectorAll('.county-toggle:checked').length;
+  document.getElementById('county-select-toggle').textContent = checkedCount > 0 ? 'Deselect all' : 'Select all';
+}
 
-document.getElementById('deselect-all-counties').addEventListener('click', function(e) {
-  e.preventDefault();
-  activeCounties.clear();
-  document.querySelectorAll('.county-toggle').forEach(function(c) { c.checked = false; });
+function applyCountyChange() {
   if (geoLayer) geoLayer.setStyle(getStyle);
   buildLegend();
   updateMuniListForRace();
@@ -1153,6 +1131,19 @@ document.getElementById('deselect-all-counties').addEventListener('click', funct
   if (selectedPrecinctLayer) { geoLayer.resetStyle(selectedPrecinctLayer); }
   selectedPrecinct = null;
   selectedPrecinctLayer = null;
+  updateCountySelectToggle();
+}
+
+document.getElementById('county-select-toggle').addEventListener('click', function(e) {
+  e.preventDefault();
+  var anyChecked = document.querySelectorAll('.county-toggle:checked').length > 0;
+  if (anyChecked) {
+    activeCounties.clear();
+    document.querySelectorAll('.county-toggle').forEach(function(c) { c.checked = false; });
+  } else {
+    document.querySelectorAll('.county-toggle').forEach(function(c) { c.checked = true; activeCounties.add(c.value); });
+  }
+  applyCountyChange();
 });
 
 document.querySelectorAll('.race-btn').forEach(btn => {
