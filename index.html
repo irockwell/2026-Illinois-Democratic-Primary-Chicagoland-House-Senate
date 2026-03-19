@@ -13,7 +13,7 @@
   .controls {
     position: absolute; top: 12px; left: 60px; z-index: 1000;
     background: white; border-radius: 8px; padding: 14px 18px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.2); max-width: 380px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2); max-width: 440px;
   }
   .controls h2 { font-size: 15px; margin-bottom: 4px; color: #1a1a2e; }
   .controls .subtitle { font-size: 11px; color: #666; margin-bottom: 10px; }
@@ -117,7 +117,13 @@
   <div class="subtitle">Cook County — Hover over a precinct for details</div>
   <div style="margin-top:6px">
     <span class="race-btn active" data-race="race6">U.S. Senate</span>
-    <span class="race-btn" data-race="race7">U.S. Rep. | 7th Dist.</span>
+    <span class="race-btn" data-race="race8">2nd Dist.</span>
+    <span class="race-btn" data-race="race12">5th Dist.</span>
+    <span class="race-btn" data-race="race13">6th Dist.</span>
+    <span class="race-btn" data-race="race7">7th Dist.</span>
+    <span class="race-btn" data-race="race14">8th Dist.</span>
+    <span class="race-btn" data-race="race15">9th Dist.</span>
+    <span class="race-btn" data-race="race16">10th Dist.</span>
   </div>
   <div style="margin-top:8px;position:relative">
     <input type="text" id="muni-search" placeholder="Search municipality..." autocomplete="off" />
@@ -136,14 +142,42 @@ const RACE_CONFIG = {
   race6: {
     title: "Senator, U.S. — DEM",
     candidates: ["Sean Brown","Juliana Stratton","Raja Krishnamoorthi","Kevin Ryan","Robin Kelly","Bryan Maxwell","Christopher Swann","Awisi A. Bustos","Jonathan Dean","Steve Botsford Jr."],
-    prefix: "race6_",
-    flag: "has_race6"
+    prefix: "race6_", flag: "has_race6"
+  },
+  race8: {
+    title: "U.S. Representative, 2nd Dist. — DEM",
+    candidates: ["Yumeka Brown","Donna Miller","Jesse Louis Jackson, Jr.","Robert Peters","Willie Preston","Eric France","Patrick J. \"PJK\" Keating","Toni C. Brown","Sidney Moore","Adal Regis"],
+    prefix: "race8_", flag: "has_race8"
+  },
+  race12: {
+    title: "U.S. Representative, 5th Dist. — DEM",
+    candidates: ["Matthew Conroy","Mike Quigley","Anthony Michael Tamez","Ellen A. Corley"],
+    prefix: "race12_", flag: "has_race12"
+  },
+  race13: {
+    title: "U.S. Representative, 6th Dist. — DEM",
+    candidates: ["Joseph \"Joey\" Ruzevich","Sean Casten"],
+    prefix: "race13_", flag: "has_race13"
   },
   race7: {
     title: "U.S. Representative, 7th Dist. — DEM",
     candidates: ["Reed Showalter","La Shawn K. Ford","Melissa Conyears-Ervin","Anthony Driver, Jr.","Jason Friedman","Kina Collins","Thomas Fisher","Anabel Mendoza","Rory Hoskins","Richard R. Boykin","Jazmin J. Robinson","David Ehrlich","Felix Tello"],
-    prefix: "race7_",
-    flag: "has_race7"
+    prefix: "race7_", flag: "has_race7"
+  },
+  race14: {
+    title: "U.S. Representative, 8th Dist. — DEM",
+    candidates: ["Neil Khot","Melissa L. Bean","Junaid Ahmed","Kevin B. Morrison","Dan Tully","Yasmeen Bankole","Ryan Vetticad","Sanjyot Dunung"],
+    prefix: "race14_", flag: "has_race14"
+  },
+  race15: {
+    title: "U.S. Representative, 9th Dist. — DEM",
+    candidates: ["Bushra Amiwala","Daniel Biss","Laura Fine","Kat Abughazaleh","Phil Andrew","Mike Simmons","Justin Ford","Jeff Cohen","Patricia A. Brown","Nick Pyati","Sam Polan","Bethany Johnson","Howard Rosenblum","Hoan Huynh","Mark Arnold Fredrickson"],
+    prefix: "race15_", flag: "has_race15"
+  },
+  race16: {
+    title: "U.S. Representative, 10th Dist. — DEM",
+    candidates: ["Morgan Coghill","Brad Schneider"],
+    prefix: "race16_", flag: "has_race16"
   }
 };
 
@@ -156,7 +190,9 @@ const NO_DATA_COLOR = "#e5e7eb";
 
 var map, geoLayer, electionData, muniLayerRef;
 var currentRace = "race6";
-var precinctWinners = { race6: new Set(), race7: new Set() };
+var allRaces = Object.keys(RACE_CONFIG);
+var precinctWinners = {};
+allRaces.forEach(function(r) { precinctWinners[r] = new Set(); });
 
 map = L.map('map', { zoomControl: true }).setView([41.85, -87.85], 11);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}{r}.png', {
@@ -212,7 +248,7 @@ function buildLegend() {
     html += '<div class="legend-item"><div class="legend-swatch" style="background:' +
       COLORS[i % COLORS.length] + '"></div><span>' + c + '</span></div>';
   });
-  if (currentRace === "race7") {
+  if (currentRace !== "race6") {
     html += '<div class="legend-item" style="margin-top:4px"><div class="legend-swatch" style="background:' +
       NO_DATA_COLOR + '"></div><span style="color:#999">Not in district</span></div>';
   }
@@ -352,7 +388,7 @@ Promise.all([
   // Compute winner_pct and total for Chicago features (same as Suburban Cook format)
   chicagoData.features.forEach(function(f) {
     var p = f.properties;
-    ['race6', 'race7'].forEach(function(race) {
+    allRaces.forEach(function(race) {
       if (!p['has_' + race]) return;
       var cfg = RACE_CONFIG[race];
       var total = 0;
@@ -371,7 +407,7 @@ Promise.all([
   // Build set of candidates who won at least one precinct
   electionData.features.forEach(function(f) {
     var p = f.properties;
-    ['race6', 'race7'].forEach(function(race) {
+    allRaces.forEach(function(race) {
       if (p['has_' + race] && p[race + '_winner']) {
         precinctWinners[race].add(p[race + '_winner']);
       }
