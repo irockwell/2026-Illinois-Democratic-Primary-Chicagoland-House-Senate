@@ -30,7 +30,7 @@
   .legend {
     position: absolute; bottom: 30px; left: 12px; z-index: 1000;
     background: white; border-radius: 8px; padding: 14px 16px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.2); min-width: 200px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2); min-width: 200px; max-width: 340px;
   }
   .legend h3 { font-size: 13px; margin-bottom: 8px; color: #333; }
   .legend-item {
@@ -40,6 +40,13 @@
     width: 16px; height: 16px; border-radius: 3px; margin-right: 8px;
     border: 1px solid rgba(0,0,0,0.15); flex-shrink: 0;
   }
+  .legend-results { margin-top: 10px; border-top: 1px solid #eee; padding-top: 8px; }
+  .legend-results h4 { font-size: 11px; color: #888; margin-bottom: 6px; font-weight: 600; }
+  .legend-results table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .legend-results td { padding: 2px 0; vertical-align: middle; }
+  .legend-results td:last-child { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .legend-results .bar-cell { width: 50px; padding: 0 4px; }
+  .legend-results .info-bar { height: 6px; border-radius: 3px; min-width: 2px; }
 
   .info-panel {
     position: absolute; top: 12px; right: 12px; z-index: 1000;
@@ -241,11 +248,26 @@ function highlightStyle() {
 function buildLegend() {
   const cfg = RACE_CONFIG[currentRace];
   const winners = new Set();
+  // Compute overall totals
+  var totals = {};
+  cfg.candidates.forEach(function(c) { totals[c] = 0; });
+  var grandTotal = 0;
+  var precinctCount = 0;
   if (electionData) {
-    electionData.features.forEach(f => {
-      if (f.properties[cfg.flag]) winners.add(f.properties[cfg.prefix + "winner"]);
+    electionData.features.forEach(function(f) {
+      var p = f.properties;
+      if (p[cfg.flag]) {
+        precinctCount++;
+        if (p[cfg.prefix + "winner"]) winners.add(p[cfg.prefix + "winner"]);
+        cfg.candidates.forEach(function(c) {
+          var v = p[cfg.prefix + c] || 0;
+          totals[c] += v;
+          grandTotal += v;
+        });
+      }
     });
   }
+
   let html = '<h3>' + cfg.title + '</h3>';
   cfg.candidates.forEach((c, i) => {
     if (!winners.has(c)) return;
@@ -257,6 +279,29 @@ function buildLegend() {
     html += '<div class="legend-item" style="margin-top:4px"><div class="legend-swatch" style="background:' +
       NO_DATA_COLOR + '"></div><span style="color:#999">Not in district</span></div>';
   }
+
+  // Add overall results table
+  if (grandTotal > 0) {
+    var label = currentRace === "race6" ? "Cook County Results" : "District Results";
+    var sorted = cfg.candidates
+      .map(function(c) { return { name: c, votes: totals[c] }; })
+      .sort(function(a, b) { return b.votes - a.votes; });
+    var maxV = sorted[0].votes;
+
+    html += '<div class="legend-results"><h4>' + label +
+      ' <span style="font-weight:400">(' + precinctCount.toLocaleString() + ' precincts)</span></h4><table>';
+    sorted.forEach(function(cv) {
+      if (cv.votes === 0) return;
+      var pct = (cv.votes / grandTotal * 100).toFixed(1);
+      var barW = maxV > 0 ? (cv.votes / maxV * 100) : 0;
+      var color = getCandidateColor(cv.name, currentRace);
+      html += '<tr><td>' + cv.name + '</td><td class="bar-cell"><div class="info-bar" style="width:' +
+        barW + '%;background:' + color + '"></div></td><td>' +
+        cv.votes.toLocaleString() + ' (' + pct + '%)</td></tr>';
+    });
+    html += '</table></div>';
+  }
+
   document.getElementById("legend").innerHTML = html;
 }
 
