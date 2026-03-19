@@ -1021,16 +1021,18 @@ function clearMuniHighlight() {
 }
 
 function zoomToMuni(muniName) {
-  // Try municipality borders layer first
+  // Combine bounds across all polygons for this municipality
   if (muniLayerRef) {
-    var found = false;
+    var bounds = L.latLngBounds([]);
     muniLayerRef.eachLayer(function(layer) {
       if (layer.feature.properties.name === muniName) {
-        map.fitBounds(layer.getBounds(), { padding: [50, 50], maxZoom: 14 });
-        found = true;
+        bounds.extend(layer.getBounds());
       }
     });
-    if (found) return;
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+      return;
+    }
   }
   // Fallback: compute bounds from precinct features (for Chicago)
   var bounds = L.latLngBounds([]);
