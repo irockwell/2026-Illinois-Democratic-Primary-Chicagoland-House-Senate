@@ -276,9 +276,42 @@ function buildInfoPanel(props) {
   }
 }
 
+var selectedPrecinct = null;
+var selectedPrecinctLayer = null;
+
 function onEachFeature(feature, layer) {
   layer.on({
     mouseover: function(e) {
+      if (selectedPrecinctLayer !== e.target) {
+        e.target.setStyle(highlightStyle());
+        e.target.bringToFront();
+      }
+      if (!selectedPrecinct) {
+        var muni = feature.properties.municipality;
+        if (muni && muni !== 'Unincorporated' && !selectedMuni) {
+          showMuniPanel(muni);
+        }
+        buildInfoPanel(feature.properties);
+      }
+    },
+    mouseout: function(e) {
+      if (selectedPrecinctLayer !== e.target) {
+        geoLayer.resetStyle(e.target);
+      }
+      if (!selectedPrecinct) {
+        document.getElementById("info-panel").style.display = "none";
+        if (!selectedMuni) {
+          document.getElementById("muni-panel").style.display = "none";
+        }
+      }
+    },
+    click: function(e) {
+      // Deselect previous
+      if (selectedPrecinctLayer) {
+        geoLayer.resetStyle(selectedPrecinctLayer);
+      }
+      selectedPrecinct = feature.properties;
+      selectedPrecinctLayer = e.target;
       e.target.setStyle(highlightStyle());
       e.target.bringToFront();
       var muni = feature.properties.municipality;
@@ -286,16 +319,22 @@ function onEachFeature(feature, layer) {
         showMuniPanel(muni);
       }
       buildInfoPanel(feature.properties);
-    },
-    mouseout: function(e) {
-      geoLayer.resetStyle(e.target);
-      document.getElementById("info-panel").style.display = "none";
-      if (!selectedMuni) {
-        document.getElementById("muni-panel").style.display = "none";
-      }
+      L.DomEvent.stopPropagation(e);
     }
   });
 }
+
+map.on('click', function() {
+  if (selectedPrecinct) {
+    if (selectedPrecinctLayer) geoLayer.resetStyle(selectedPrecinctLayer);
+    selectedPrecinct = null;
+    selectedPrecinctLayer = null;
+    document.getElementById("info-panel").style.display = "none";
+    if (!selectedMuni) {
+      document.getElementById("muni-panel").style.display = "none";
+    }
+  }
+});
 
 // Create pane for municipality borders above overlays but below tooltips
 map.createPane('muniPane');
