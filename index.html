@@ -350,8 +350,14 @@ function buildLegendForRace(race) {
 
 function getCountyLabel() {
   var labels = [];
-  if (activeCounties.has('cook')) labels.push('Suburban Cook');
-  if (activeCounties.has('chicago')) labels.push('Chicago');
+  var hasCook = activeCounties.has('cook');
+  var hasChicago = activeCounties.has('chicago');
+  if (hasCook && hasChicago) {
+    labels.push('Cook (Suburban Cook + Chicago)');
+  } else {
+    if (hasCook) labels.push('Suburban Cook');
+    if (hasChicago) labels.push('Chicago');
+  }
   if (activeCounties.has('dupage')) labels.push('DuPage');
   if (activeCounties.has('lake')) labels.push('Lake');
   if (activeCounties.has('mchenry')) labels.push('McHenry');
