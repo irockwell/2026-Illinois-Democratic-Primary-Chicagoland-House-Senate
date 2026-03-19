@@ -448,7 +448,6 @@ var selectedPrecinctLayer = null;
 function onEachFeature(feature, layer) {
   layer.on({
     mouseover: function(e) {
-      clearMuniHighlight();
       if (selectedPrecinctLayer !== e.target) {
         e.target.setStyle(highlightStyle());
         e.target.bringToFront();
@@ -476,6 +475,7 @@ function onEachFeature(feature, layer) {
       }
     },
     click: function(e) {
+      clearMuniHighlight();
       if (selectedPrecinctLayer === e.target) {
         // Toggle off — clicking same precinct deselects
         geoLayer.resetStyle(e.target);
@@ -953,7 +953,7 @@ function showMuniPanel(muniName, pinned, race) {
 
   var turnout = data.registered > 0 ? (data.ballots / data.registered * 100).toFixed(1) : "—";
 
-  panel.innerHTML = '<button class="close-btn" onclick="document.getElementById(\'muni-panel\').style.display=\'none\';document.getElementById(\'info-panel\').style.display=\'none\';selectedMuni=null;document.getElementById(\'muni-search\').value=\'\'">&times;</button>' +
+  panel.innerHTML = '<button class="close-btn" onclick="document.getElementById(\'muni-panel\').style.display=\'none\';document.getElementById(\'info-panel\').style.display=\'none\';selectedMuni=null;document.getElementById(\'muni-search\').value=\'\';clearMuniHighlight()">&times;</button>' +
     '<h3>' + muniName + '</h3>' +
     '<div class="muni-precincts">' + data.precinctCount + ' precincts</div>' +
     '<div class="winner-tag" style="background:' + winnerColor + '">' + winner + ' — ' + winnerPct + '%</div>' +
@@ -972,7 +972,7 @@ function highlightMuni(muniName) {
   if (muniLayerRef) {
     muniLayerRef.eachLayer(function(layer) {
       if (layer.feature.properties.name === muniName) {
-        layer.setStyle({ weight: 3, color: '#ffff00', opacity: 1 });
+        layer.setStyle({ weight: 3, color: '#1a1a2e', opacity: 1 });
         layer.bringToFront();
         highlightedMuniLayers.push(layer);
       }
