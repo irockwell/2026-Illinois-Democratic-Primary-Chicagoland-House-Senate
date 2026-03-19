@@ -109,6 +109,18 @@
     padding: 0; white-space: nowrap;
   }
   .muni-label::before { display: none; }
+
+  .county-label {
+    background: none !important; border: none !important; box-shadow: none !important;
+  }
+  .county-label span {
+    color: #1a1a2e; font-size: 14px; font-weight: 800; font-style: italic;
+    text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff,
+                 -1px 1px 0 #fff, 1px 1px 0 #fff,
+                 0 -1px 0 #fff, 0 1px 0 #fff,
+                 -1px 0 0 #fff, 1px 0 0 #fff;
+    white-space: nowrap; pointer-events: none;
+  }
 </style>
 </head>
 <body>
@@ -696,6 +708,54 @@ Promise.all([
     }
   }).addTo(map);
 
+  // County labels
+  var countyLabels = [];
+  var countyLabelMap = {
+    'Cook County': { name: 'Cook County', jurisdiction: 'cook' },
+    'Chicago': { name: 'Chicago', jurisdiction: 'chicago' },
+    'DuPage County': { name: 'DuPage County', jurisdiction: 'dupage' },
+    'Lake County': { name: 'Lake County', jurisdiction: 'lake' },
+    'McHenry County': { name: 'McHenry County', jurisdiction: 'mchenry' }
+  };
+  countyBoundaries.features.forEach(function(feat) {
+    var info = countyLabelMap[feat.properties.name];
+    if (!info) return;
+    // Compute centroid from bounds
+    var layer = countyBorderLayers[feat.properties.name];
+    if (!layer) return;
+    var bounds = layer.getBounds();
+    var center = bounds.getCenter();
+    var label = L.marker(center, {
+      icon: L.divIcon({
+        className: 'county-label',
+        html: '<span>' + info.name + '</span>',
+        iconSize: [120, 20],
+        iconAnchor: [60, 10]
+      }),
+      interactive: false,
+      pane: 'muniPane'
+    }).addTo(map);
+    label._countyJurisdiction = info.jurisdiction;
+    label._countyFaint = !!feat.properties.faint;
+    countyLabels.push(label);
+  });
+
+  window.updateCountyLabels = function() {
+    var zoom = map.getZoom();
+    var show = zoom <= 11;
+    countyLabels.forEach(function(label) {
+      var el = label.getElement();
+      if (!el) return;
+      var jurisdiction = label._countyJurisdiction;
+      var faint = label._countyFaint;
+      var countyOn = jurisdiction === 'cook' ? (activeCounties.has('cook') || activeCounties.has('chicago')) : activeCounties.has(jurisdiction);
+      // Hide Chicago label (it's the faint border, labeled separately from Cook)
+      if (faint) { el.style.display = 'none'; return; }
+      el.style.display = (show && countyOn) ? '' : 'none';
+    });
+  };
+  window.updateCountyLabels();
+
   window.updateChicagoBorder = function() {
     if (!chicagoBorderLayer) return;
     var chicagoOn = activeCounties.has('chicago');
@@ -761,6 +821,7 @@ Promise.all([
   map.on('zoomend', function() {
     window.updateMuniBoundaries();
     window.updateCommunityAreas();
+    window.updateCountyLabels();
     if (geoLayer) geoLayer.setStyle(getStyle);
   });
   window.updateMuniBoundaries();
@@ -960,6 +1021,7 @@ document.querySelectorAll('.county-toggle').forEach(function(cb) {
     updateMuniListForRace();
     if (muniLayerRef) updateMuniBoundaries();
     if (typeof updateChicagoBorder === 'function') updateChicagoBorder();
+    if (typeof updateCountyLabels === 'function') updateCountyLabels();
     document.getElementById("info-panel").style.display = "none";
     if (selectedPrecinctLayer) { geoLayer.resetStyle(selectedPrecinctLayer); }
     selectedPrecinct = null;
