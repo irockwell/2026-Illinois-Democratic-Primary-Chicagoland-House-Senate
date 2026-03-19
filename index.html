@@ -662,6 +662,7 @@ Promise.all([
 
   // County boundary outlines
   var chicagoBorderLayer = null;
+  var countyBorderLayers = {};
   var countyBorderLayer = L.geoJSON(countyBoundaries, {
     style: function(feature) {
       if (feature.properties.faint) {
@@ -672,16 +673,33 @@ Promise.all([
     interactive: false, pane: 'muniPane',
     onEachFeature: function(feature, layer) {
       if (feature.properties.faint) chicagoBorderLayer = layer;
+      countyBorderLayers[feature.properties.name] = layer;
     }
   }).addTo(map);
 
   window.updateChicagoBorder = function() {
     if (!chicagoBorderLayer) return;
-    var communityOn = document.getElementById('community-toggle').checked;
-    if (communityOn) {
-      chicagoBorderLayer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: 2.5, color: '#8b4513', opacity: 0.7, dashArray: '8,4' });
+    var chicagoOn = activeCounties.has('chicago');
+    if (!chicagoOn) {
+      chicagoBorderLayer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: 0, opacity: 0 });
     } else {
-      chicagoBorderLayer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#1a1a2e', opacity: 0.3, dashArray: '6,4' });
+      var communityOn = document.getElementById('community-toggle').checked;
+      if (communityOn) {
+        chicagoBorderLayer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: 2.5, color: '#8b4513', opacity: 0.7, dashArray: '8,4' });
+      } else {
+        chicagoBorderLayer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#1a1a2e', opacity: 0.3, dashArray: '6,4' });
+      }
+    }
+    // Hide/show Cook and DuPage borders based on county toggles
+    var cookLayer = countyBorderLayers['Cook County'];
+    if (cookLayer) {
+      var cookOn = activeCounties.has('cook') || activeCounties.has('chicago');
+      cookLayer.setStyle(cookOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 0, opacity: 0 });
+    }
+    var dupageLayer = countyBorderLayers['DuPage County'];
+    if (dupageLayer) {
+      var dupageOn = activeCounties.has('dupage');
+      dupageLayer.setStyle(dupageOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 0, opacity: 0 });
     }
   };
 
@@ -912,6 +930,7 @@ document.querySelectorAll('.county-toggle').forEach(function(cb) {
     buildLegend();
     updateMuniListForRace();
     if (muniLayerRef) updateMuniBoundaries();
+    if (typeof updateChicagoBorder === 'function') updateChicagoBorder();
     document.getElementById("info-panel").style.display = "none";
     if (selectedPrecinctLayer) { geoLayer.resetStyle(selectedPrecinctLayer); }
     selectedPrecinct = null;
