@@ -834,24 +834,8 @@ document.querySelectorAll('.county-toggle').forEach(function(cb) {
 document.querySelectorAll('.race-btn').forEach(btn => {
   btn.addEventListener('click', function() {
     var race = this.dataset.race;
-
-    if (race === 'race6') {
-      // Senate is exclusive — clicking it clears all CDs
-      activeRaces.clear();
-      activeRaces.add('race6');
-    } else if (activeRaces.has('race6')) {
-      // Switching from Senate to a CD
-      activeRaces.clear();
-      activeRaces.add(race);
-    } else if (activeRaces.has(race)) {
-      // Toggle off a CD (but keep at least one active)
-      if (activeRaces.size > 1) {
-        activeRaces.delete(race);
-      }
-    } else {
-      // Add a CD
-      activeRaces.add(race);
-    }
+    activeRaces.clear();
+    activeRaces.add(race);
 
     // Update button states
     document.querySelectorAll('.race-btn').forEach(function(b) {
