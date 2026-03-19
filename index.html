@@ -196,10 +196,26 @@ const COLORS = [
 const NO_DATA_COLOR = "#e5e7eb";
 
 var map, geoLayer, electionData, muniLayerRef;
-var currentRace = "race6";
+var activeRaces = new Set(["race6"]);
 var allRaces = Object.keys(RACE_CONFIG);
 var precinctWinners = {};
 allRaces.forEach(function(r) { precinctWinners[r] = new Set(); });
+
+// Find which active race applies to a precinct
+function getPrecinctRace(props) {
+  for (var race of activeRaces) {
+    if (props[RACE_CONFIG[race].flag]) return race;
+  }
+  return null;
+}
+
+// Find which active race applies to a municipality
+function getMuniRace(muniName) {
+  for (var race of activeRaces) {
+    if (munisPerRace[race] && munisPerRace[race].has(muniName)) return race;
+  }
+  return null;
+}
 
 map = L.map('map', { zoomControl: true }).setView([41.85, -87.85], 11);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}{r}.png', {
@@ -228,16 +244,17 @@ function precinctWeight() {
 
 function getStyle(feature) {
   const p = feature.properties;
-  const cfg = RACE_CONFIG[currentRace];
+  var race = getPrecinctRace(p);
   var w = precinctWeight();
-  if (!p[cfg.flag]) {
+  if (!race) {
     return { fillColor: NO_DATA_COLOR, fillOpacity: 0.25, weight: Math.min(w, 0.4), color: "#ccc", opacity: 0.4 };
   }
+  const cfg = RACE_CONFIG[race];
   const pct = p[cfg.prefix + "winner_pct"];
   const opacity = Math.min(0.85, Math.max(0.35, pct / 100 * 1.6));
   return {
-    fillColor: getCandidateColor(p[cfg.prefix + "winner"], currentRace),
-    fillOpacity: opacity, weight: w, color: getCandidateColor(p[cfg.prefix + "winner"], currentRace), opacity: opacity
+    fillColor: getCandidateColor(p[cfg.prefix + "winner"], race),
+    fillOpacity: opacity, weight: w, color: getCandidateColor(p[cfg.prefix + "winner"], race), opacity: opacity
   };
 }
 
@@ -245,19 +262,16 @@ function highlightStyle() {
   return { weight: 1.5, color: "#1a1a2e", opacity: 1 };
 }
 
-function buildLegend() {
-  const cfg = RACE_CONFIG[currentRace];
-  const winners = new Set();
-  // Compute overall totals
+function buildLegendForRace(race) {
+  var cfg = RACE_CONFIG[race];
+  var winners = new Set();
   var totals = {};
   cfg.candidates.forEach(function(c) { totals[c] = 0; });
   var grandTotal = 0;
-  var precinctCount = 0;
   if (electionData) {
     electionData.features.forEach(function(f) {
       var p = f.properties;
       if (p[cfg.flag]) {
-        precinctCount++;
         if (p[cfg.prefix + "winner"]) winners.add(p[cfg.prefix + "winner"]);
         cfg.candidates.forEach(function(c) {
           var v = p[cfg.prefix + c] || 0;
@@ -267,25 +281,31 @@ function buildLegend() {
       }
     });
   }
-
-  let html = '<h3>' + cfg.title + '</h3>';
-  // Sort candidates by vote total for display
+  var html = '<h3>' + cfg.title + '</h3>';
   var sorted = cfg.candidates
     .map(function(c) { return { name: c, votes: totals[c] }; })
     .sort(function(a, b) { return b.votes - a.votes; });
-
   sorted.forEach(function(cv) {
     if (!winners.has(cv.name)) return;
-    var color = getCandidateColor(cv.name, currentRace);
+    var color = getCandidateColor(cv.name, race);
     var pct = grandTotal > 0 ? (cv.votes / grandTotal * 100).toFixed(1) : '0.0';
     html += '<div class="legend-item"><div class="legend-swatch" style="background:' +
       color + '"></div><span class="legend-name">' + cv.name + '</span><span class="legend-pct">' + pct + '%</span></div>';
   });
-  if (currentRace !== "race6") {
+  return html;
+}
+
+function buildLegend() {
+  var html = '';
+  var raceList = Array.from(activeRaces);
+  raceList.forEach(function(race, idx) {
+    if (idx > 0) html += '<div style="margin-top:10px;border-top:1px solid #eee;padding-top:8px"></div>';
+    html += buildLegendForRace(race);
+  });
+  if (!activeRaces.has("race6")) {
     html += '<div class="legend-item" style="margin-top:4px"><div class="legend-swatch" style="background:' +
       NO_DATA_COLOR + '"></div><span style="color:#999">Not in district</span></div>';
   }
-
   document.getElementById("legend").innerHTML = html;
 }
 
@@ -298,13 +318,14 @@ function getDisplayName(props) {
 }
 
 function buildInfoPanel(props) {
-  var cfg = RACE_CONFIG[currentRace];
   var panel = document.getElementById("info-panel");
-  if (!props[cfg.flag]) { panel.style.display = "none"; return; }
+  var race = getPrecinctRace(props);
+  if (!race) { panel.style.display = "none"; return; }
+  var cfg = RACE_CONFIG[race];
 
   var total = props[cfg.prefix + "total"];
   var winner = props[cfg.prefix + "winner"];
-  var winnerColor = getCandidateColor(winner, currentRace);
+  var winnerColor = getCandidateColor(winner, race);
 
   var cVotes = cfg.candidates
     .map(function(c) { return { name: c, votes: props[cfg.prefix + c] || 0 }; })
@@ -317,7 +338,7 @@ function buildInfoPanel(props) {
     var pct = total > 0 ? (cv.votes / total * 100).toFixed(1) : 0;
     var barW = maxV > 0 ? (cv.votes / maxV * 100) : 0;
     rows += '<tr><td>' + cv.name + '</td><td class="bar-cell"><div class="info-bar" style="width:' +
-      barW + '%;background:' + getCandidateColor(cv.name, currentRace) + '"></div></td><td>' +
+      barW + '%;background:' + getCandidateColor(cv.name, race) + '"></div></td><td>' +
       cv.votes.toLocaleString() + ' (' + pct + '%)</td></tr>';
   });
 
@@ -339,7 +360,6 @@ function buildInfoPanel(props) {
     ' — ' + props[cfg.prefix + "winner_pct"] + '%</div>' +
     '<table>' + rows + '</table>' + metaHtml;
   panel.style.display = "block";
-  // Position below muni panel if visible
   var muniPanel = document.getElementById("muni-panel");
   if (muniPanel.style.display === 'block') {
     panel.style.top = (muniPanel.offsetTop + muniPanel.offsetHeight + 8) + 'px';
@@ -359,11 +379,11 @@ function onEachFeature(feature, layer) {
         e.target.bringToFront();
       }
       if (!selectedPrecinct) {
-        var cfg = RACE_CONFIG[currentRace];
-        if (feature.properties[cfg.flag]) {
+        var hoverRace = getPrecinctRace(feature.properties);
+        if (hoverRace) {
           var muni = feature.properties.municipality;
           if (muni && muni !== 'Unincorporated' && !selectedMuni) {
-            showMuniPanel(muni);
+            showMuniPanel(muni, false, hoverRace);
           }
         }
         buildInfoPanel(feature.properties);
@@ -397,9 +417,12 @@ function onEachFeature(feature, layer) {
         selectedPrecinctLayer = e.target;
         e.target.setStyle(highlightStyle());
         e.target.bringToFront();
-        var muni = feature.properties.municipality;
-        if (muni && muni !== 'Unincorporated' && !selectedMuni) {
-          showMuniPanel(muni);
+        var clickRace = getPrecinctRace(feature.properties);
+        if (clickRace) {
+          var muni = feature.properties.municipality;
+          if (muni && muni !== 'Unincorporated' && !selectedMuni) {
+            showMuniPanel(muni, false, clickRace);
+          }
         }
         buildInfoPanel(feature.properties);
       }
@@ -477,10 +500,16 @@ Promise.all([
   window.updateMuniBoundaries = function() {
     var enabled = document.getElementById('muni-toggle').checked;
     var show = enabled && map.getZoom() >= 12;
-    var raceMunis = munisPerRace[currentRace] || new Set();
+    // Build union of munis across all active races
+    var activeMunis = new Set();
+    activeRaces.forEach(function(race) {
+      if (munisPerRace[race]) {
+        munisPerRace[race].forEach(function(m) { activeMunis.add(m); });
+      }
+    });
     muniLayerRef.eachLayer(function(layer) {
       var muniName = layer.feature.properties.name;
-      var inDistrict = enabled && raceMunis.has(muniName);
+      var inDistrict = enabled && activeMunis.has(muniName);
       layer.setStyle({
         weight: inDistrict ? 1.5 : 0,
         opacity: inDistrict ? 0.5 : 0
@@ -488,10 +517,10 @@ Promise.all([
       var tip = layer.getTooltip();
       if (tip) {
         var el = tip.getElement();
-        if (el) el.style.display = (show && raceMunis.has(muniName)) ? '' : 'none';
+        if (el) el.style.display = (show && activeMunis.has(muniName)) ? '' : 'none';
       }
     });
-    var showChicago = show && raceMunis.has('Chicago');
+    var showChicago = show && activeMunis.has('Chicago');
     chicagoLabel.getElement().style.display = showChicago ? '' : 'none';
   }
   map.on('zoomend', function() {
@@ -524,12 +553,17 @@ function buildMuniList() {
 }
 
 function updateMuniListForRace() {
-  var muniSet = munisPerRace[currentRace] || new Set();
+  var muniSet = new Set();
+  activeRaces.forEach(function(race) {
+    if (munisPerRace[race]) {
+      munisPerRace[race].forEach(function(m) { muniSet.add(m); });
+    }
+  });
   allMunis = Array.from(muniSet).sort();
 }
 
-function getMuniTotals(muniName) {
-  var cfg = RACE_CONFIG[currentRace];
+function getMuniTotals(muniName, race) {
+  var cfg = RACE_CONFIG[race];
   var totals = {};
   cfg.candidates.forEach(function(c) { totals[c] = 0; });
   var registered = 0, ballots = 0, precinctCount = 0;
@@ -549,10 +583,12 @@ function getMuniTotals(muniName) {
   return { totals: totals, total: total, registered: registered, ballots: ballots, precinctCount: precinctCount };
 }
 
-function showMuniPanel(muniName, pinned) {
-  var cfg = RACE_CONFIG[currentRace];
+function showMuniPanel(muniName, pinned, race) {
+  if (!race) race = getMuniRace(muniName);
+  if (!race) { document.getElementById("muni-panel").style.display = "none"; return; }
+  var cfg = RACE_CONFIG[race];
   var panel = document.getElementById("muni-panel");
-  var data = getMuniTotals(muniName);
+  var data = getMuniTotals(muniName, race);
   if (data.precinctCount === 0) { panel.style.display = "none"; return; }
   var maxCandidates = 4;
 
@@ -562,7 +598,7 @@ function showMuniPanel(muniName, pinned) {
   var maxV = cVotes[0].votes;
   var winner = cVotes[0].name;
   var winnerPct = data.total > 0 ? (cVotes[0].votes / data.total * 100).toFixed(1) : 0;
-  var winnerColor = getCandidateColor(winner, currentRace);
+  var winnerColor = getCandidateColor(winner, race);
 
   var rows = "";
   var shown = 0;
@@ -571,7 +607,7 @@ function showMuniPanel(muniName, pinned) {
     var pct = data.total > 0 ? (cv.votes / data.total * 100).toFixed(1) : 0;
     var barW = maxV > 0 ? (cv.votes / maxV * 100) : 0;
     rows += '<tr><td>' + cv.name + '</td><td class="bar-cell"><div class="info-bar" style="width:' +
-      barW + '%;background:' + getCandidateColor(cv.name, currentRace) + '"></div></td><td>' +
+      barW + '%;background:' + getCandidateColor(cv.name, race) + '"></div></td><td>' +
       cv.votes.toLocaleString() + ' (' + pct + '%)</td></tr>';
     shown++;
   });
@@ -666,23 +702,51 @@ document.getElementById('muni-toggle').addEventListener('change', function() {
 
 document.querySelectorAll('.race-btn').forEach(btn => {
   btn.addEventListener('click', function() {
-    document.querySelectorAll('.race-btn').forEach(b => b.classList.remove('active'));
-    this.classList.add('active');
-    currentRace = this.dataset.race;
+    var race = this.dataset.race;
+
+    if (race === 'race6') {
+      // Senate is exclusive — clicking it clears all CDs
+      activeRaces.clear();
+      activeRaces.add('race6');
+    } else if (activeRaces.has('race6')) {
+      // Switching from Senate to a CD
+      activeRaces.clear();
+      activeRaces.add(race);
+    } else if (activeRaces.has(race)) {
+      // Toggle off a CD (but keep at least one active)
+      if (activeRaces.size > 1) {
+        activeRaces.delete(race);
+      }
+    } else {
+      // Add a CD
+      activeRaces.add(race);
+    }
+
+    // Update button states
+    document.querySelectorAll('.race-btn').forEach(function(b) {
+      b.classList.toggle('active', activeRaces.has(b.dataset.race));
+    });
+
     if (geoLayer) geoLayer.setStyle(getStyle);
     buildLegend();
     updateMuniListForRace();
     document.getElementById("info-panel").style.display = "none";
-    // Clear selected muni if it's not in this district
-    if (selectedMuni && munisPerRace[currentRace] && !munisPerRace[currentRace].has(selectedMuni)) {
-      selectedMuni = null;
-      document.getElementById('muni-search').value = '';
-      document.getElementById('muni-panel').style.display = 'none';
-    } else if (selectedMuni) {
-      showMuniPanel(selectedMuni, true);
+    // Clear selected muni if it's not in any active district
+    if (selectedMuni) {
+      var muniRace = getMuniRace(selectedMuni);
+      if (!muniRace) {
+        selectedMuni = null;
+        document.getElementById('muni-search').value = '';
+        document.getElementById('muni-panel').style.display = 'none';
+      } else {
+        showMuniPanel(selectedMuni, true, muniRace);
+      }
     }
-    // Update municipality boundary visibility
     if (muniLayerRef) updateMuniBoundaries();
+    // Deselect precinct
+    if (selectedPrecinctLayer) { geoLayer.resetStyle(selectedPrecinctLayer); }
+    selectedPrecinct = null;
+    selectedPrecinctLayer = null;
   });
 });
 
