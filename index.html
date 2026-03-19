@@ -710,33 +710,35 @@ Promise.all([
 
   // County labels
   var countyLabels = [];
-  var countyLabelMap = {
-    'Cook County': { name: 'Cook', jurisdiction: 'cook' },
-    'Chicago': { name: 'Chicago', jurisdiction: 'chicago' },
-    'DuPage County': { name: 'DuPage', jurisdiction: 'dupage' },
-    'Lake County': { name: 'Lake', jurisdiction: 'lake' },
-    'McHenry County': { name: 'McHenry', jurisdiction: 'mchenry' }
-  };
-  countyBoundaries.features.forEach(function(feat) {
-    var info = countyLabelMap[feat.properties.name];
-    if (!info) return;
-    // Compute centroid from bounds
-    var layer = countyBorderLayers[feat.properties.name];
-    if (!layer) return;
-    var bounds = layer.getBounds();
-    var center = bounds.getCenter();
+  var countyLabelDefs = [
+    { keys: ['Cook County', 'Chicago'], name: 'Cook', jurisdiction: 'cook', checkCounties: ['cook', 'chicago'] },
+    { keys: ['DuPage County'], name: 'DuPage', jurisdiction: 'dupage', checkCounties: ['dupage'] },
+    { keys: ['Lake County'], name: 'Lake', jurisdiction: 'lake', checkCounties: ['lake'] },
+    { keys: ['McHenry County'], name: 'McHenry', jurisdiction: 'mchenry', checkCounties: ['mchenry'] }
+  ];
+  countyLabelDefs.forEach(function(def) {
+    // Merge bounds from all keys
+    var mergedBounds = null;
+    def.keys.forEach(function(key) {
+      var layer = countyBorderLayers[key];
+      if (layer) {
+        if (!mergedBounds) mergedBounds = layer.getBounds();
+        else mergedBounds.extend(layer.getBounds());
+      }
+    });
+    if (!mergedBounds) return;
+    var center = mergedBounds.getCenter();
     var label = L.marker(center, {
       icon: L.divIcon({
         className: 'county-label',
-        html: '<span>' + info.name + '</span>',
+        html: '<span>' + def.name + '</span>',
         iconSize: [120, 20],
         iconAnchor: [60, 10]
       }),
       interactive: false,
       pane: 'muniPane'
     }).addTo(map);
-    label._countyJurisdiction = info.jurisdiction;
-    label._countyFaint = !!feat.properties.faint;
+    label._checkCounties = def.checkCounties;
     countyLabels.push(label);
   });
 
@@ -746,11 +748,7 @@ Promise.all([
     countyLabels.forEach(function(label) {
       var el = label.getElement();
       if (!el) return;
-      var jurisdiction = label._countyJurisdiction;
-      var faint = label._countyFaint;
-      var countyOn = jurisdiction === 'cook' ? (activeCounties.has('cook') || activeCounties.has('chicago')) : activeCounties.has(jurisdiction);
-      // Hide Chicago label (it's the faint border, labeled separately from Cook)
-      if (faint) { el.style.display = 'none'; return; }
+      var countyOn = label._checkCounties.some(function(c) { return activeCounties.has(c); });
       el.style.display = (show && countyOn) ? '' : 'none';
     });
   };
