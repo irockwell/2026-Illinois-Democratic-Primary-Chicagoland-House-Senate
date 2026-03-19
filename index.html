@@ -213,6 +213,7 @@ const NO_DATA_COLOR = "#e5e7eb";
 var map, geoLayer, electionData, muniLayerRef, communityLayerRef;
 var activeRaces = new Set(["race6"]);
 var activeCounties = new Set(["cook", "chicago", "dupage"]);
+var communityAreasPerRace = {};
 var allRaces = Object.keys(RACE_CONFIG);
 var precinctWinners = {};
 allRaces.forEach(function(r) { precinctWinners[r] = new Set(); });
@@ -310,8 +311,9 @@ function buildLegendForRace(race) {
   var sorted = cfg.candidates
     .map(function(c) { return { name: c, votes: totals[c] }; })
     .sort(function(a, b) { return b.votes - a.votes; });
+  var showAll = race !== 'race6' && cfg.candidates.length <= 4;
   sorted.forEach(function(cv) {
-    if (!winners.has(cv.name)) return;
+    if (!showAll && !winners.has(cv.name)) return;
     var color = getCandidateColor(cv.name, race);
     var pct = grandTotal > 0 ? (cv.votes / grandTotal * 100).toFixed(1) : '0.0';
     html += '<div class="legend-item"><div class="legend-swatch" style="background:' +
@@ -573,10 +575,69 @@ Promise.all([
       }
     }
   });
-  // Start hidden
+
+  // Build communityAreasPerRace: for each race, which community areas have Chicago precincts
+  (function() {
+    // Point-in-polygon ray casting
+    function pointInRing(pt, ring) {
+      var x = pt[0], y = pt[1], inside = false;
+      for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        var xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+        if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+      }
+      return inside;
+    }
+    function pointInPolygon(pt, geom) {
+      var coords = geom.coordinates;
+      if (geom.type === 'Polygon') {
+        return pointInRing(pt, coords[0]);
+      } else if (geom.type === 'MultiPolygon') {
+        for (var i = 0; i < coords.length; i++) {
+          if (pointInRing(pt, coords[i][0])) return true;
+        }
+      }
+      return false;
+    }
+    // Compute centroid of a polygon (average of exterior ring)
+    function centroidOf(geom) {
+      var ring = geom.type === 'MultiPolygon' ? geom.coordinates[0][0] : geom.coordinates[0];
+      var sx = 0, sy = 0;
+      for (var i = 0; i < ring.length; i++) { sx += ring[i][0]; sy += ring[i][1]; }
+      return [sx / ring.length, sy / ring.length];
+    }
+    // For each Chicago precinct, find its community area
+    var precinctCA = []; // [{races: Set, centroid: [lng,lat]}]
+    electionData.features.forEach(function(f) {
+      var p = f.properties;
+      if (p.jurisdiction !== 'chicago') return;
+      var races = new Set();
+      allRaces.forEach(function(r) { if (p['has_' + r]) races.add(r); });
+      if (races.size === 0) return;
+      precinctCA.push({ races: races, centroid: centroidOf(f.geometry) });
+    });
+    // For each community area, check which precincts fall in it
+    communityData.features.forEach(function(ca) {
+      var caName = ca.properties.name;
+      var caRaces = new Set();
+      precinctCA.forEach(function(pc) {
+        if (pointInPolygon(pc.centroid, ca.geometry)) {
+          pc.races.forEach(function(r) { caRaces.add(r); });
+        }
+      });
+      communityAreasPerRace[caName] = caRaces;
+    });
+  })();
+
   window.updateCommunityAreas = function() {
     var enabled = document.getElementById('community-toggle').checked;
     var show = enabled && map.getZoom() >= 12;
+    // Build set of community areas in active race
+    var activeCAs = new Set();
+    activeRaces.forEach(function(race) {
+      for (var ca in communityAreasPerRace) {
+        if (communityAreasPerRace[ca].has(race)) activeCAs.add(ca);
+      }
+    });
     if (enabled && !map.hasLayer(communityLayerRef)) {
       communityLayerRef.addTo(map);
     } else if (!enabled && map.hasLayer(communityLayerRef)) {
@@ -584,10 +645,16 @@ Promise.all([
     }
     if (communityLayerRef) {
       communityLayerRef.eachLayer(function(layer) {
+        var caName = layer.feature.properties.name;
+        var inDistrict = enabled && activeCAs.has(caName);
+        layer.setStyle({
+          weight: inDistrict ? 0.8 : 0,
+          opacity: inDistrict ? 0.4 : 0
+        });
         var tip = layer.getTooltip();
         if (tip) {
           var el = tip.getElement();
-          if (el) el.style.display = show ? '' : 'none';
+          if (el) el.style.display = (show && inDistrict) ? '' : 'none';
         }
       });
     }
@@ -879,6 +946,7 @@ document.querySelectorAll('.race-btn').forEach(btn => {
       }
     }
     if (muniLayerRef) updateMuniBoundaries();
+    if (typeof updateCommunityAreas === 'function') updateCommunityAreas();
     // Deselect precinct
     if (selectedPrecinctLayer) { geoLayer.resetStyle(selectedPrecinctLayer); }
     selectedPrecinct = null;
