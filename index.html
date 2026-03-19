@@ -412,7 +412,7 @@ function showMuniPanel(muniName, pinned) {
   var panel = document.getElementById("muni-panel");
   var data = getMuniTotals(muniName);
   if (data.precinctCount === 0) { panel.style.display = "none"; return; }
-  var maxCandidates = pinned ? 4 : 999;
+  var maxCandidates = 4;
 
   var cVotes = cfg.candidates
     .map(function(c) { return { name: c, votes: data.totals[c] }; })
@@ -436,7 +436,7 @@ function showMuniPanel(muniName, pinned) {
 
   var turnout = data.registered > 0 ? (data.ballots / data.registered * 100).toFixed(1) : "—";
 
-  panel.innerHTML = '<button class="close-btn" onclick="document.getElementById(\'muni-panel\').style.display=\'none\';selectedMuni=null;document.getElementById(\'muni-search\').value=\'\'">&times;</button>' +
+  panel.innerHTML = '<button class="close-btn" onclick="document.getElementById(\'muni-panel\').style.display=\'none\';document.getElementById(\'info-panel\').style.display=\'none\';selectedMuni=null;document.getElementById(\'muni-search\').value=\'\'">&times;</button>' +
     '<h3>' + muniName + '</h3>' +
     '<div class="muni-precincts">' + data.precinctCount + ' precincts</div>' +
     '<div class="winner-tag" style="background:' + winnerColor + '">' + winner + ' — ' + winnerPct + '%</div>' +
