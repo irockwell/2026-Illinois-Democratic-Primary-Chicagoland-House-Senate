@@ -478,10 +478,12 @@ Promise.all([
   fetch('chicago_election_data.json').then(function(r) { if (!r.ok) throw new Error('chicago_election_data: ' + r.status); return r.json(); }),
   fetch('dupage_election_data.json').then(function(r) { if (!r.ok) throw new Error('dupage_election_data: ' + r.status); return r.json(); }),
   fetch('dupage_municipalities.json').then(function(r) { if (!r.ok) throw new Error('dupage_municipalities: ' + r.status); return r.json(); }),
-  fetch('chicago_community_areas.json').then(function(r) { if (!r.ok) throw new Error('chicago_community_areas: ' + r.status); return r.json(); })
+  fetch('chicago_community_areas.json').then(function(r) { if (!r.ok) throw new Error('chicago_community_areas: ' + r.status); return r.json(); }),
+  fetch('county_boundaries.json').then(function(r) { if (!r.ok) throw new Error('county_boundaries: ' + r.status); return r.json(); })
 ]).then(function(results) {
   var eData = results[0], muniData = results[1], chicagoData = results[2];
   var dupageData = results[3], dupageMuniData = results[4], communityData = results[5];
+  var countyBoundaries = results[6];
 
   // Compute winner_pct and total for Chicago features (same as Suburban Cook format)
   chicagoData.features.forEach(function(f) {
@@ -568,6 +570,12 @@ Promise.all([
       });
     }
   };
+
+  // County boundary outlines
+  L.geoJSON(countyBoundaries, {
+    style: { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' },
+    interactive: false, pane: 'muniPane'
+  }).addTo(map);
 
   window.updateMuniBoundaries = function() {
     var enabled = document.getElementById('muni-toggle').checked;
