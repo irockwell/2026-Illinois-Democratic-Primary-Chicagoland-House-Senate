@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Democratic Primary Election Results — Cook County</title>
+<title>Democratic Primary Election Results — Cook County, IL</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -112,7 +112,7 @@
 
 <div class="controls">
   <h2>March 17, 2026 Democratic Primary</h2>
-  <div class="subtitle">Suburban Cook County — Hover over a precinct for details</div>
+  <div class="subtitle">Cook County — Hover over a precinct for details</div>
   <div style="margin-top:6px">
     <span class="race-btn active" data-race="race6">U.S. Senate</span>
     <span class="race-btn" data-race="race7">U.S. Rep. | 7th Dist.</span>
@@ -209,7 +209,7 @@ function buildLegend() {
 
 function getDisplayName(props) {
   var label = props.name;
-  if (props.municipality && props.municipality !== 'Unincorporated') {
+  if (props.jurisdiction !== 'chicago' && props.municipality && props.municipality !== 'Unincorporated') {
     label += ' (' + props.municipality + ')';
   }
   return label;
@@ -239,16 +239,23 @@ function buildInfoPanel(props) {
       cv.votes.toLocaleString() + ' (' + pct + '%)</td></tr>';
   });
 
-  var turnout = props[cfg.prefix + "registered"] > 0
-    ? (props[cfg.prefix + "ballots"] / props[cfg.prefix + "registered"] * 100).toFixed(1) : "—";
+  var regVal = props[cfg.prefix + "registered"] || 0;
+  var ballotVal = props[cfg.prefix + "ballots"] || 0;
+  var turnout = regVal > 0 && regVal >= ballotVal ? (ballotVal / regVal * 100).toFixed(1) : "—";
+
+  var metaHtml = '';
+  if (regVal > 0 && regVal >= ballotVal) {
+    metaHtml = '<div class="meta">Registered: ' + regVal.toLocaleString() +
+      ' &nbsp;|&nbsp; Ballots: ' + ballotVal.toLocaleString() +
+      ' &nbsp;|&nbsp; Turnout: ' + turnout + '%</div>';
+  } else {
+    metaHtml = '<div class="meta">Total votes: ' + (props[cfg.prefix + "total"] || 0).toLocaleString() + '</div>';
+  }
 
   panel.innerHTML = '<h3>' + getDisplayName(props) + '</h3>' +
     '<div class="winner-tag" style="background:' + winnerColor + '">' + winner +
     ' — ' + props[cfg.prefix + "winner_pct"] + '%</div>' +
-    '<table>' + rows + '</table>' +
-    '<div class="meta">Registered: ' + props[cfg.prefix + "registered"].toLocaleString() +
-    ' &nbsp;|&nbsp; Ballots: ' + props[cfg.prefix + "ballots"].toLocaleString() +
-    ' &nbsp;|&nbsp; Turnout: ' + turnout + '%</div>';
+    '<table>' + rows + '</table>' + metaHtml;
   panel.style.display = "block";
   // Position below muni panel if visible
   var muniPanel = document.getElementById("muni-panel");
@@ -285,12 +292,31 @@ map.createPane('muniPane');
 map.getPane('muniPane').style.zIndex = 450;
 map.getPane('muniPane').style.pointerEvents = 'none';
 
-// Load both data files
+// Load all data files
 Promise.all([
   fetch('election_data.json').then(function(r) { if (!r.ok) throw new Error('election_data: ' + r.status); return r.json(); }),
-  fetch('municipalities.json').then(function(r) { if (!r.ok) throw new Error('municipalities: ' + r.status); return r.json(); })
+  fetch('municipalities.json').then(function(r) { if (!r.ok) throw new Error('municipalities: ' + r.status); return r.json(); }),
+  fetch('chicago_election_data.json').then(function(r) { if (!r.ok) throw new Error('chicago_election_data: ' + r.status); return r.json(); })
 ]).then(function(results) {
-  var eData = results[0], muniData = results[1];
+  var eData = results[0], muniData = results[1], chicagoData = results[2];
+
+  // Compute winner_pct and total for Chicago features (same as Suburban Cook format)
+  chicagoData.features.forEach(function(f) {
+    var p = f.properties;
+    ['race6', 'race7'].forEach(function(race) {
+      if (!p['has_' + race]) return;
+      var cfg = RACE_CONFIG[race];
+      var total = 0;
+      cfg.candidates.forEach(function(c) { total += p[cfg.prefix + c] || 0; });
+      p[cfg.prefix + 'total'] = total;
+      var winner = p[cfg.prefix + 'winner'];
+      var winnerVotes = p[cfg.prefix + winner] || 0;
+      p[cfg.prefix + 'winner_pct'] = total > 0 ? parseFloat((winnerVotes / total * 100).toFixed(1)) : 0;
+    });
+  });
+
+  // Merge Chicago features into election data
+  eData.features = eData.features.concat(chicagoData.features);
   electionData = eData;
   geoLayer = L.geoJSON(eData, { style: getStyle, onEachFeature: onEachFeature }).addTo(map);
   map.fitBounds(geoLayer.getBounds());
@@ -391,19 +417,37 @@ function showMuniPanel(muniName, pinned) {
     '<div class="muni-precincts">' + data.precinctCount + ' precincts</div>' +
     '<div class="winner-tag" style="background:' + winnerColor + '">' + winner + ' — ' + winnerPct + '%</div>' +
     '<table>' + rows + '</table>' +
-    '<div class="meta">Registered: ' + data.registered.toLocaleString() +
-    ' &nbsp;|&nbsp; Ballots: ' + data.ballots.toLocaleString() +
-    ' &nbsp;|&nbsp; Turnout: ' + turnout + '%</div>';
+    (data.registered > 0 && data.registered >= data.ballots
+      ? '<div class="meta">Registered: ' + data.registered.toLocaleString() +
+        ' &nbsp;|&nbsp; Ballots: ' + data.ballots.toLocaleString() +
+        ' &nbsp;|&nbsp; Turnout: ' + turnout + '%</div>'
+      : '<div class="meta">Total votes: ' + data.total.toLocaleString() + '</div>');
   panel.style.display = "block";
 }
 
 function zoomToMuni(muniName) {
-  if (!muniLayerRef) return;
-  muniLayerRef.eachLayer(function(layer) {
-    if (layer.feature.properties.name === muniName) {
-      map.fitBounds(layer.getBounds(), { padding: [50, 50] });
+  // Try municipality borders layer first
+  if (muniLayerRef) {
+    var found = false;
+    muniLayerRef.eachLayer(function(layer) {
+      if (layer.feature.properties.name === muniName) {
+        map.fitBounds(layer.getBounds(), { padding: [50, 50] });
+        found = true;
+      }
+    });
+    if (found) return;
+  }
+  // Fallback: compute bounds from precinct features (for Chicago)
+  var bounds = L.latLngBounds([]);
+  electionData.features.forEach(function(f) {
+    if (f.properties.municipality === muniName) {
+      var layer = L.geoJSON(f);
+      bounds.extend(layer.getBounds());
     }
   });
+  if (bounds.isValid()) {
+    map.fitBounds(bounds, { padding: [50, 50] });
+  }
 }
 
 var searchInput = document.getElementById('muni-search');
