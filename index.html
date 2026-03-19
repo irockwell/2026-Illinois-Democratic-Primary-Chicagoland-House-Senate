@@ -313,8 +313,12 @@ function buildLegendForRace(race) {
     .map(function(c) { return { name: c, votes: totals[c] }; })
     .sort(function(a, b) { return b.votes - a.votes; });
   var showAll = race !== 'race6' && cfg.candidates.length <= 4;
+  var minWinnerVotes = Infinity;
   sorted.forEach(function(cv) {
-    if (!showAll && !winners.has(cv.name)) return;
+    if (winners.has(cv.name) && cv.votes < minWinnerVotes) minWinnerVotes = cv.votes;
+  });
+  sorted.forEach(function(cv) {
+    if (!showAll && !winners.has(cv.name) && cv.votes < minWinnerVotes) return;
     var color = getCandidateColor(cv.name, race);
     var pct = grandTotal > 0 ? (cv.votes / grandTotal * 100).toFixed(1) : '0.0';
     html += '<div class="legend-item"><div class="legend-swatch" style="background:' +
