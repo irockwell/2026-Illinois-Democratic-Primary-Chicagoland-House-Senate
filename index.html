@@ -506,6 +506,28 @@ Promise.all([
   muniData.features = muniData.features.concat(dupageMuniData.features);
   electionData = eData;
 
+  // Recompute winners with tie-breaking: candidate listed first in RACE_CONFIG wins ties
+  electionData.features.forEach(function(f) {
+    var p = f.properties;
+    allRaces.forEach(function(race) {
+      if (!p['has_' + race]) return;
+      var cfg = RACE_CONFIG[race];
+      if (!cfg) return;
+      var bestVotes = -1, bestIdx = 999, bestName = null;
+      cfg.candidates.forEach(function(c, idx) {
+        var v = p[cfg.prefix + c] || 0;
+        if (v > bestVotes || (v === bestVotes && idx < bestIdx)) {
+          bestVotes = v; bestIdx = idx; bestName = c;
+        }
+      });
+      if (bestName && bestVotes > 0) {
+        var total = p[cfg.prefix + 'total'] || 0;
+        p[cfg.prefix + 'winner'] = bestName;
+        p[cfg.prefix + 'winner_pct'] = total > 0 ? parseFloat((bestVotes / total * 100).toFixed(1)) : 0;
+      }
+    });
+  });
+
   // Build set of candidates who won at least one precinct
   electionData.features.forEach(function(f) {
     var p = f.properties;
