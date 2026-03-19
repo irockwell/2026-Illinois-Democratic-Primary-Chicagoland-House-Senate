@@ -34,8 +34,10 @@
   }
   .legend h3 { font-size: 13px; margin-bottom: 8px; color: #333; }
   .legend-item {
-    display: flex; align-items: center; margin-bottom: 4px; font-size: 12px;
+    display: flex; align-items: center; margin-bottom: 4px; font-size: 12px; width: 100%;
   }
+  .legend-item .legend-name { flex: 1; }
+  .legend-item .legend-pct { font-variant-numeric: tabular-nums; white-space: nowrap; margin-left: 8px; }
   .legend-swatch {
     width: 16px; height: 16px; border-radius: 3px; margin-right: 8px;
     border: 1px solid rgba(0,0,0,0.15); flex-shrink: 0;
@@ -272,7 +274,7 @@ function buildLegend() {
     var color = getCandidateColor(cv.name, currentRace);
     var pct = grandTotal > 0 ? (cv.votes / grandTotal * 100).toFixed(1) : '0.0';
     html += '<div class="legend-item"><div class="legend-swatch" style="background:' +
-      color + '"></div><span>' + cv.name + ' — ' + pct + '%</span></div>';
+      color + '"></div><span class="legend-name">' + cv.name + '</span><span class="legend-pct">' + pct + '%</span></div>';
   });
   if (currentRace !== "race6") {
     html += '<div class="legend-item" style="margin-top:4px"><div class="legend-swatch" style="background:' +
