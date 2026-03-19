@@ -448,6 +448,7 @@ var selectedPrecinctLayer = null;
 function onEachFeature(feature, layer) {
   layer.on({
     mouseover: function(e) {
+      clearMuniHighlight();
       if (selectedPrecinctLayer !== e.target) {
         e.target.setStyle(highlightStyle());
         e.target.bringToFront();
@@ -965,6 +966,26 @@ function showMuniPanel(muniName, pinned, race) {
   panel.style.display = "block";
 }
 
+var highlightedMuniLayers = [];
+function highlightMuni(muniName) {
+  clearMuniHighlight();
+  if (muniLayerRef) {
+    muniLayerRef.eachLayer(function(layer) {
+      if (layer.feature.properties.name === muniName) {
+        layer.setStyle({ weight: 3, color: '#ffff00', opacity: 1 });
+        layer.bringToFront();
+        highlightedMuniLayers.push(layer);
+      }
+    });
+  }
+}
+function clearMuniHighlight() {
+  highlightedMuniLayers.forEach(function(layer) {
+    layer.setStyle({ weight: 1.5, color: '#1a1a2e', opacity: 0.5 });
+  });
+  highlightedMuniLayers = [];
+}
+
 function zoomToMuni(muniName) {
   // Try municipality borders layer first
   if (muniLayerRef) {
@@ -1011,6 +1032,7 @@ searchInput.addEventListener('input', function() {
       selectedMuni = name;
       showMuniPanel(name, true);
       zoomToMuni(name);
+      highlightMuni(name);
     });
   });
 });
@@ -1026,6 +1048,7 @@ searchInput.addEventListener('keydown', function(e) {
       selectedMuni = match;
       showMuniPanel(match, true);
       zoomToMuni(match);
+      highlightMuni(match);
     }
   }
 });
