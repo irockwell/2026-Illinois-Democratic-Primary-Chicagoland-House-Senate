@@ -183,7 +183,7 @@ function getStyle(feature) {
 }
 
 function highlightStyle() {
-  return { weight: 2.5, color: "#1a1a2e", opacity: 1 };
+  return { weight: 1.5, color: "#1a1a2e", opacity: 1 };
 }
 
 function buildLegend() {
@@ -298,7 +298,7 @@ Promise.all([
   buildMuniList();
 
   muniLayerRef = L.geoJSON(muniData, {
-    style: { fillColor: 'transparent', fillOpacity: 0, weight: 2.5, color: '#1a1a2e', opacity: 0.5 },
+    style: { fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#1a1a2e', opacity: 0.5 },
     interactive: false, pane: 'muniPane',
     onEachFeature: function(feature, layer) {
       if (feature.properties.name) {
