@@ -148,7 +148,7 @@ const RACE_CONFIG = {
 // ColorBrewer Dark2 (7) + Set1 (2) — max perceptual distance
 const COLORS = [
   "#1b9e77","#d95f02","#7570b3","#e7298a","#66a61e",
-  "#e6ab02","#a6761d","#377eb8","#999999"
+  "#e6ab02","#a6761d","#377eb8","#984ea3"
 ];
 const NO_DATA_COLOR = "#e5e7eb";
 
@@ -306,35 +306,33 @@ function onEachFeature(feature, layer) {
       }
     },
     click: function(e) {
-      // Deselect previous
-      if (selectedPrecinctLayer) {
-        geoLayer.resetStyle(selectedPrecinctLayer);
+      if (selectedPrecinctLayer === e.target) {
+        // Toggle off — clicking same precinct deselects
+        geoLayer.resetStyle(e.target);
+        selectedPrecinct = null;
+        selectedPrecinctLayer = null;
+        document.getElementById("info-panel").style.display = "none";
+        if (!selectedMuni) {
+          document.getElementById("muni-panel").style.display = "none";
+        }
+      } else {
+        // Select new precinct
+        if (selectedPrecinctLayer) geoLayer.resetStyle(selectedPrecinctLayer);
+        selectedPrecinct = feature.properties;
+        selectedPrecinctLayer = e.target;
+        e.target.setStyle(highlightStyle());
+        e.target.bringToFront();
+        var muni = feature.properties.municipality;
+        if (muni && muni !== 'Unincorporated' && !selectedMuni) {
+          showMuniPanel(muni);
+        }
+        buildInfoPanel(feature.properties);
       }
-      selectedPrecinct = feature.properties;
-      selectedPrecinctLayer = e.target;
-      e.target.setStyle(highlightStyle());
-      e.target.bringToFront();
-      var muni = feature.properties.municipality;
-      if (muni && muni !== 'Unincorporated' && !selectedMuni) {
-        showMuniPanel(muni);
-      }
-      buildInfoPanel(feature.properties);
       L.DomEvent.stopPropagation(e);
     }
   });
 }
 
-map.on('click', function() {
-  if (selectedPrecinct) {
-    if (selectedPrecinctLayer) geoLayer.resetStyle(selectedPrecinctLayer);
-    selectedPrecinct = null;
-    selectedPrecinctLayer = null;
-    document.getElementById("info-panel").style.display = "none";
-    if (!selectedMuni) {
-      document.getElementById("muni-panel").style.display = "none";
-    }
-  }
-});
 
 // Create pane for municipality borders above overlays but below tooltips
 map.createPane('muniPane');
