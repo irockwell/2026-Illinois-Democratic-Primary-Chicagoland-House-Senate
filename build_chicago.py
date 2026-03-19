@@ -6,23 +6,49 @@ import urllib.request
 import xlrd
 
 # ── Configuration ──────────────────────────────────────────────────────────────
-SENATE_FILE = "Chicago Dem Senate.xls"
-CD7_FILE = "Chicago CD 7.xls"
 GEOJSON_URL = "https://data.cityofchicago.org/resource/i8fv-xe4b.geojson?$limit=5000"
 OUTPUT_FILE = "chicago_election_data.json"
+TURNOUT_FILE = "download-10.xls"
 
-# Candidate lists (same order as Suburban Cook for consistent coloring)
-SENATE_CANDIDATES = [
-    "Juliana Stratton", "Raja Krishnamoorthi", "Robin Kelly", "Kevin Ryan",
-    "Sean Brown", "Bryan Maxwell", "Christopher Swann", "Awisi A. Bustos",
-    "Jonathan Dean", "Steve Botsford Jr."
-]
-CD7_CANDIDATES = [
-    "La Shawn K. Ford", "Kina Collins", "Melissa Conyears-Ervin",
-    "Anthony Driver, Jr.", "Thomas Fisher", "Jason Friedman",
-    "Reed Showalter", "Anabel Mendoza", "Richard R. Boykin",
-    "Rory Hoskins", "Jazmin J. Robinson", "David Ehrlich", "Felix Tello"
-]
+# Race definitions: race_key -> (filename, candidate_list)
+# Candidate lists match Suburban Cook ordering for consistent coloring
+RACES = {
+    "race6": ("Chicago Dem Senate.xls", [
+        "Juliana Stratton", "Raja Krishnamoorthi", "Robin Kelly", "Kevin Ryan",
+        "Sean Brown", "Bryan Maxwell", "Christopher Swann", "Awisi A. Bustos",
+        "Jonathan Dean", "Steve Botsford Jr."
+    ]),
+    "race7": ("Chicago CD 7.xls", [
+        "La Shawn K. Ford", "Kina Collins", "Melissa Conyears-Ervin",
+        "Anthony Driver, Jr.", "Thomas Fisher", "Jason Friedman",
+        "Reed Showalter", "Anabel Mendoza", "Richard R. Boykin",
+        "Rory Hoskins", "Jazmin J. Robinson", "David Ehrlich", "Felix Tello"
+    ]),
+    "race8": ("download-3.xls", [
+        "Donna Miller", "Eric France", "Robert Peters", "Willie Preston",
+        "Jesse Louis Jackson, Jr.", "Yumeka Brown",
+        'Patrick J. "PJK" Keating', "Toni C. Brown", "Sidney Moore", "Adal Regis"
+    ]),
+    "race12": ("download-6.xls", [
+        "Mike Quigley", "Matthew Conroy", "Anthony Michael Tamez", "Ellen A. Corley"
+    ]),
+    "race13": ("download-7.xls", [
+        "Sean Casten", 'Joseph "Joey" Ruzevich'
+    ]),
+    "race14": ("download-8.xls", [
+        "Neil Khot", "Yasmeen Bankole", "Kevin B. Morrison", "Dan Tully",
+        "Ryan Vetticad", "Melissa L. Bean", "Junaid Ahmed", "Sanjyot Dunung"
+    ]),
+    "race15": ("download-9.xls", [
+        "Daniel Biss", "Justin Ford", "Mike Simmons", "Bushra Amiwala",
+        "Patricia A. Brown", "Jeff Cohen", "Laura Fine", "Phil Andrew",
+        "Nick Pyati", "Kat Abughazaleh", "Sam Polan", "Bethany Johnson",
+        "Howard Rosenblum", "Hoan Huynh", "Mark Arnold Fredrickson"
+    ]),
+}
+
+ALL_RACE_KEYS = ['race6','race7','race8','race9','race10','race11',
+                 'race12','race13','race14','race15','race16','race17']
 
 
 def parse_xls(filename):
@@ -84,25 +110,60 @@ def parse_xls(filename):
     return results
 
 
+def parse_turnout(filename):
+    """Parse Chicago turnout XLS into {(ward, precinct): {registered, ballots}}"""
+    wb = xlrd.open_workbook(filename, ignore_workbook_corruption=True)
+    ws = wb.sheet_by_index(0)
+    results = {}
+    current_ward = None
+    for r in range(ws.nrows):
+        cell0 = str(ws.cell_value(r, 0)).strip()
+        if cell0.startswith("Ward "):
+            try:
+                current_ward = int(cell0.replace("Ward ", ""))
+            except ValueError:
+                pass
+            continue
+        if cell0 in ("Precinct", "Total", "", "Registered Voters") or current_ward is None:
+            continue
+        try:
+            precinct = int(float(cell0))
+        except (ValueError, TypeError):
+            continue
+        try:
+            registered = int(float(ws.cell_value(r, 1)))
+        except (ValueError, TypeError):
+            registered = 0
+        try:
+            ballots = int(float(ws.cell_value(r, 2)))
+        except (ValueError, TypeError):
+            ballots = 0
+        results[(current_ward, precinct)] = {"registered": registered, "ballots": ballots}
+    return results
+
+
 def main():
     # ── Parse election results ──────────────────────────────────────────────
-    print("Parsing Senate results...")
-    senate_results = parse_xls(SENATE_FILE)
-    print(f"  Found {len(senate_results)} ward-precinct entries")
+    all_results = {}
+    for race_key, (filename, candidates) in RACES.items():
+        print(f"Parsing {race_key} ({filename})...")
+        results = parse_xls(filename)
+        all_results[race_key] = results
+        print(f"  Found {len(results)} ward-precinct entries")
 
-    print("Parsing CD-7 results...")
-    cd7_results = parse_xls(CD7_FILE)
-    print(f"  Found {len(cd7_results)} ward-precinct entries")
+    # ── Parse turnout data ───────────────────────────────────────────────────
+    print(f"\nParsing turnout ({TURNOUT_FILE})...")
+    turnout_data = parse_turnout(TURNOUT_FILE)
+    print(f"  Found {len(turnout_data)} ward-precinct entries")
 
     # ── Download precinct boundaries ────────────────────────────────────────
-    print("Downloading Chicago precinct boundaries...")
+    print("\nDownloading Chicago precinct boundaries...")
     req = urllib.request.Request(GEOJSON_URL, headers={"User-Agent": "Mozilla/5.0"})
     geojson = json.loads(urllib.request.urlopen(req).read())
     print(f"  {len(geojson['features'])} precinct polygons")
 
     # ── Merge data ──────────────────────────────────────────────────────────
-    matched_senate = 0
-    matched_cd7 = 0
+    match_counts = {rk: 0 for rk in RACES}
     features_out = []
 
     for feature in geojson["features"]:
@@ -117,47 +178,29 @@ def main():
             "jurisdiction": "chicago"
         }
 
-        # Senate data
-        if key in senate_results:
-            sr = senate_results[key]
-            new_props["has_race6"] = True
-            new_props["race6_ballots"] = sr["total_voters"]
-            new_props["race6_registered"] = 0  # Not in this dataset
+        # Initialize all race flags to False
+        for rkey in ALL_RACE_KEYS:
+            new_props[f"has_{rkey}"] = False
 
-            winner = None
-            winner_votes = 0
-            for cand in SENATE_CANDIDATES:
-                v = sr["votes"].get(cand, 0)
-                col_name = f"race6_{cand}"
-                new_props[col_name] = v
-                if v > winner_votes:
-                    winner_votes = v
-                    winner = cand
-            new_props["race6_winner"] = winner
-            matched_senate += 1
-        else:
-            new_props["has_race6"] = False
+        # Process each race
+        for race_key, (filename, candidates) in RACES.items():
+            if key in all_results[race_key]:
+                data = all_results[race_key][key]
+                new_props[f"has_{race_key}"] = True
+                new_props[f"{race_key}_ballots"] = data["total_voters"]
+                turnout = turnout_data.get(key, {})
+                new_props[f"{race_key}_registered"] = turnout.get("registered", 0)
 
-        # CD-7 data
-        if key in cd7_results:
-            cr = cd7_results[key]
-            new_props["has_race7"] = True
-            new_props["race7_ballots"] = cr["total_voters"]
-            new_props["race7_registered"] = 0
-
-            winner = None
-            winner_votes = 0
-            for cand in CD7_CANDIDATES:
-                v = cr["votes"].get(cand, 0)
-                col_name = f"race7_{cand}"
-                new_props[col_name] = v
-                if v > winner_votes:
-                    winner_votes = v
-                    winner = cand
-            new_props["race7_winner"] = winner
-            matched_cd7 += 1
-        else:
-            new_props["has_race7"] = False
+                winner = None
+                winner_votes = 0
+                for cand in candidates:
+                    v = data["votes"].get(cand, 0)
+                    new_props[f"{race_key}_{cand}"] = v
+                    if v > winner_votes:
+                        winner_votes = v
+                        winner = cand
+                new_props[f"{race_key}_winner"] = winner
+                match_counts[race_key] += 1
 
         # Round coordinates to 5 decimal places for smaller file
         geom = feature["geometry"]
@@ -180,8 +223,9 @@ def main():
             "geometry": geom
         })
 
-    print(f"\n  Senate matched: {matched_senate}/{len(geojson['features'])}")
-    print(f"  CD-7 matched: {matched_cd7}/{len(geojson['features'])}")
+    print(f"\nMatch results ({len(geojson['features'])} total precincts):")
+    for race_key in RACES:
+        print(f"  {race_key}: {match_counts[race_key]} matched")
 
     # ── Write output ────────────────────────────────────────────────────────
     output = {
