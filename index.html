@@ -367,7 +367,7 @@ function buildLegend() {
     if (idx > 0) html += '<div style="margin-top:10px;border-top:1px solid #eee;padding-top:8px"></div>';
     html += buildLegendForRace(race);
   });
-  html += '<div style="font-size:10px;color:#999;margin-top:6px">Percentages reflect selected counties</div>';
+  html += '<div style="font-size:10px;color:#999;margin-top:6px">' + getCountyLabel() + '</div>';
   if (!activeRaces.has("race6")) {
     html += '<div class="legend-item" style="margin-top:4px"><div class="legend-swatch" style="background:' +
       NO_DATA_COLOR + '"></div><span style="color:#999">Not in district</span></div>';
