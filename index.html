@@ -133,7 +133,7 @@
 const RACE_CONFIG = {
   race6: {
     title: "Senator, U.S. — DEM",
-    candidates: ["Juliana Stratton","Raja Krishnamoorthi","Robin Kelly","Kevin Ryan","Sean Brown","Bryan Maxwell","Christopher Swann","Awisi A. Bustos","Jonathan Dean","Steve Botsford Jr."],
+    candidates: ["Raja Krishnamoorthi","Juliana Stratton","Robin Kelly","Kevin Ryan","Sean Brown","Bryan Maxwell","Christopher Swann","Awisi A. Bustos","Jonathan Dean","Steve Botsford Jr."],
     prefix: "race6_",
     flag: "has_race6"
   },
@@ -145,15 +145,16 @@ const RACE_CONFIG = {
   }
 };
 
-// ColorBrewer Paired palette (9 colors, no reds)
+// ColorBrewer Dark2 (7) + Set1 (2) — max perceptual distance
 const COLORS = [
-  "#1f78b4","#33a02c","#ff7f00","#6a3d9a","#b15928",
-  "#a6cee3","#b2df8a","#fdbf6f","#cab2d6"
+  "#1b9e77","#d95f02","#7570b3","#e7298a","#66a61e",
+  "#e6ab02","#a6761d","#377eb8","#f781bf"
 ];
 const NO_DATA_COLOR = "#e5e7eb";
 
 var map, geoLayer, electionData, muniLayerRef;
 var currentRace = "race6";
+var precinctWinners = { race6: new Set(), race7: new Set() };
 
 map = L.map('map', { zoomControl: true }).setView([41.85, -87.85], 11);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
@@ -164,8 +165,9 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.
 }).addTo(map);
 
 function getCandidateColor(candidate, race) {
+  if (!precinctWinners[race].has(candidate)) return "#bbb";
   const idx = RACE_CONFIG[race].candidates.indexOf(candidate);
-  return idx >= 0 ? COLORS[idx % COLORS.length] : "#999";
+  return idx >= 0 ? COLORS[idx % COLORS.length] : "#bbb";
 }
 
 function getStyle(feature) {
@@ -318,6 +320,17 @@ Promise.all([
   // Merge Chicago features into election data
   eData.features = eData.features.concat(chicagoData.features);
   electionData = eData;
+
+  // Build set of candidates who won at least one precinct
+  electionData.features.forEach(function(f) {
+    var p = f.properties;
+    ['race6', 'race7'].forEach(function(race) {
+      if (p['has_' + race] && p[race + '_winner']) {
+        precinctWinners[race].add(p[race + '_winner']);
+      }
+    });
+  });
+
   geoLayer = L.geoJSON(eData, { style: getStyle, onEachFeature: onEachFeature }).addTo(map);
   map.fitBounds(geoLayer.getBounds());
   buildLegend();
