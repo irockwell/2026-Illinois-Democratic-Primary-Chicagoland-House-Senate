@@ -328,6 +328,7 @@ def main():
                 new_props[f"has_{rk}"] = True
                 new_props[f"{rk}_registered"] = data["registered"]
                 new_props[f"{rk}_ballots"] = data["total"]
+                new_props[f"{rk}_total"] = data["total"]
 
                 winner = None
                 winner_votes = 0

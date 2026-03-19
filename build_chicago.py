@@ -188,6 +188,7 @@ def main():
                 data = all_results[race_key][key]
                 new_props[f"has_{race_key}"] = True
                 new_props[f"{race_key}_ballots"] = data["total_voters"]
+                new_props[f"{race_key}_total"] = data["total_voters"]
                 turnout = turnout_data.get(key, {})
                 new_props[f"{race_key}_registered"] = turnout.get("registered", 0)
 
