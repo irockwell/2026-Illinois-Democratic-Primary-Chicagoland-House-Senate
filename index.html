@@ -344,8 +344,9 @@ function buildLegendForRace(race) {
   sorted.forEach(function(cv) {
     if (winners.has(cv.name) && cv.votes < minWinnerVotes) minWinnerVotes = cv.votes;
   });
-  sorted.forEach(function(cv) {
-    if (!showAll && !winners.has(cv.name) && cv.votes < minWinnerVotes) return;
+  sorted.forEach(function(cv, idx) {
+    var isSenateTop4 = (race === 'race6' && idx < 4);
+    if (!showAll && !isSenateTop4 && !winners.has(cv.name) && cv.votes < minWinnerVotes) return;
     var color = getCandidateColor(cv.name, race);
     var pct = grandTotal > 0 ? (cv.votes / grandTotal * 100).toFixed(1) : '0.0';
     html += '<div class="legend-item"><div class="legend-swatch" style="background:' +
