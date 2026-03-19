@@ -563,7 +563,7 @@ Promise.all([
 
   // Community area boundaries
   communityLayerRef = L.geoJSON(communityData, {
-    style: { fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#8b4513', opacity: 0.5 },
+    style: { fillColor: 'transparent', fillOpacity: 0, weight: 0.8, color: '#8b4513', opacity: 0.4 },
     interactive: false, pane: 'muniPane',
     onEachFeature: function(feature, layer) {
       if (feature.properties.name) {
