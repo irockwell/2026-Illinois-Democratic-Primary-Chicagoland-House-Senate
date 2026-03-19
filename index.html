@@ -596,23 +596,51 @@ Promise.all([
   buildLegend();
   buildMuniList();
 
-  // Compute combined centroid for each municipality (handles multi-county municipalities)
-  var muniBounds = {};
+  // Compute area-weighted centroid for each municipality (handles multi-county municipalities)
+  function polyArea(ring) {
+    var a = 0;
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      a += ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+    }
+    return Math.abs(a) / 2;
+  }
+  function polyCentroid(ring) {
+    var cx = 0, cy = 0, a = 0;
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      var f = ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+      cx += (ring[j][0] + ring[i][0]) * f;
+      cy += (ring[j][1] + ring[i][1]) * f;
+      a += f;
+    }
+    a = a / 2;
+    if (Math.abs(a) < 1e-10) return null;
+    return [cx / (6 * a), cy / (6 * a)];
+  }
+  var muniPolys = {};
   muniData.features.forEach(function(f) {
     var name = f.properties.name;
     if (!name) return;
-    var coords = f.geometry.type === 'MultiPolygon'
-      ? [].concat.apply([], f.geometry.coordinates.map(function(p) { return p[0]; }))
-      : (f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] : []);
-    if (!muniBounds[name]) muniBounds[name] = [];
-    coords.forEach(function(c) { muniBounds[name].push(c); });
+    if (!muniPolys[name]) muniPolys[name] = [];
+    var rings = f.geometry.type === 'MultiPolygon'
+      ? f.geometry.coordinates.map(function(p) { return p[0]; })
+      : (f.geometry.type === 'Polygon' ? [f.geometry.coordinates[0]] : []);
+    rings.forEach(function(ring) {
+      var a = polyArea(ring);
+      var c = polyCentroid(ring);
+      if (c && a > 0) muniPolys[name].push({ area: a, centroid: c });
+    });
   });
   var muniCentroids = {};
-  Object.keys(muniBounds).forEach(function(name) {
-    var pts = muniBounds[name];
-    var sumLng = 0, sumLat = 0;
-    pts.forEach(function(c) { sumLng += c[0]; sumLat += c[1]; });
-    muniCentroids[name] = [sumLat / pts.length, sumLng / pts.length];
+  Object.keys(muniPolys).forEach(function(name) {
+    var parts = muniPolys[name];
+    if (parts.length === 0) return;
+    var totalArea = 0, wLng = 0, wLat = 0;
+    parts.forEach(function(p) {
+      totalArea += p.area;
+      wLng += p.centroid[0] * p.area;
+      wLat += p.centroid[1] * p.area;
+    });
+    muniCentroids[name] = [wLat / totalArea, wLng / totalArea];
   });
 
   muniLayerRef = L.geoJSON(muniData, {
