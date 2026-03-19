@@ -844,11 +844,17 @@ Promise.all([
     });
     muniLayerRef.eachLayer(function(layer) {
       var muniName = layer.feature.properties.name;
+      var isHighlighted = highlightedMuniLayers.indexOf(layer) >= 0;
       var inDistrict = enabled && activeMunis.has(muniName);
-      layer.setStyle({
-        weight: inDistrict ? 1.5 : 0,
-        opacity: inDistrict ? 0.5 : 0
-      });
+      if (isHighlighted && inDistrict) {
+        layer.setStyle({ weight: 2.5, color: '#e63946', opacity: 0.9 });
+      } else {
+        layer.setStyle({
+          weight: inDistrict ? 1.5 : 0,
+          color: '#1a1a2e',
+          opacity: inDistrict ? 0.5 : 0
+        });
+      }
     });
     // Show/hide municipality label markers
     Object.keys(muniLabelMarkers).forEach(function(name) {
@@ -972,7 +978,7 @@ function highlightMuni(muniName) {
   if (muniLayerRef) {
     muniLayerRef.eachLayer(function(layer) {
       if (layer.feature.properties.name === muniName) {
-        layer.setStyle({ weight: 3, color: '#1a1a2e', opacity: 1 });
+        layer.setStyle({ weight: 2.5, color: '#e63946', opacity: 0.9 });
         layer.bringToFront();
         highlightedMuniLayers.push(layer);
       }
@@ -992,7 +998,7 @@ function zoomToMuni(muniName) {
     var found = false;
     muniLayerRef.eachLayer(function(layer) {
       if (layer.feature.properties.name === muniName) {
-        map.fitBounds(layer.getBounds(), { padding: [50, 50] });
+        map.fitBounds(layer.getBounds(), { padding: [50, 50], maxZoom: 14 });
         found = true;
       }
     });
