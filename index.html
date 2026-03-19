@@ -509,6 +509,9 @@ function onEachFeature(feature, layer) {
 // Create pane for municipality borders above overlays but below tooltips
 map.createPane('muniPane');
 map.getPane('muniPane').style.zIndex = 450;
+// Create pane for county labels above municipality borders
+map.createPane('countyLabelPane');
+map.getPane('countyLabelPane').style.zIndex = 455;
 map.getPane('muniPane').style.pointerEvents = 'none';
 
 // Load all data files
@@ -749,7 +752,7 @@ Promise.all([
         iconAnchor: [0, 0]
       }),
       interactive: false,
-      pane: 'muniPane'
+      pane: 'countyLabelPane'
     }).addTo(map);
     label._checkCounties = def.checkCounties;
     countyLabels.push(label);
