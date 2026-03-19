@@ -148,7 +148,7 @@
 const RACE_CONFIG = {
   race6: {
     title: "Senator, U.S. — DEM",
-    candidates: ["Juliana Stratton","Raja Krishnamoorthi","Robin Kelly","Kevin Ryan","Sean Brown","Bryan Maxwell","Christopher Swann","Awisi A. Bustos","Jonathan Dean","Steve Botsford Jr."],
+    candidates: ["Juliana Stratton","Raja Krishnamoorthi","Robin Kelly","Kevin Ryan","Sean Brown","Bryan Maxwell","Christopher Swann","Awisi A. Bustos","Jonathan Dean","Steve Botsford Jr.","Adam Delgado"],
     prefix: "race6_", flag: "has_race6"
   },
   race8: {
@@ -441,9 +441,12 @@ map.getPane('muniPane').style.pointerEvents = 'none';
 Promise.all([
   fetch('election_data.json').then(function(r) { if (!r.ok) throw new Error('election_data: ' + r.status); return r.json(); }),
   fetch('municipalities.json').then(function(r) { if (!r.ok) throw new Error('municipalities: ' + r.status); return r.json(); }),
-  fetch('chicago_election_data.json').then(function(r) { if (!r.ok) throw new Error('chicago_election_data: ' + r.status); return r.json(); })
+  fetch('chicago_election_data.json').then(function(r) { if (!r.ok) throw new Error('chicago_election_data: ' + r.status); return r.json(); }),
+  fetch('dupage_election_data.json').then(function(r) { if (!r.ok) throw new Error('dupage_election_data: ' + r.status); return r.json(); }),
+  fetch('dupage_municipalities.json').then(function(r) { if (!r.ok) throw new Error('dupage_municipalities: ' + r.status); return r.json(); })
 ]).then(function(results) {
   var eData = results[0], muniData = results[1], chicagoData = results[2];
+  var dupageData = results[3], dupageMuniData = results[4];
 
   // Compute winner_pct and total for Chicago features (same as Suburban Cook format)
   chicagoData.features.forEach(function(f) {
@@ -460,8 +463,10 @@ Promise.all([
     });
   });
 
-  // Merge Chicago features into election data
-  eData.features = eData.features.concat(chicagoData.features);
+  // Merge Chicago and DuPage features into election data
+  eData.features = eData.features.concat(chicagoData.features).concat(dupageData.features);
+  // Merge DuPage municipality boundaries
+  muniData.features = muniData.features.concat(dupageMuniData.features);
   electionData = eData;
 
   // Build set of candidates who won at least one precinct
