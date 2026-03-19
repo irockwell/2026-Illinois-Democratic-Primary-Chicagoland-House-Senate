@@ -138,6 +138,9 @@
     <label style="cursor:pointer;white-space:nowrap;user-select:none">
       <input type="checkbox" class="county-toggle" value="dupage" checked style="margin-right:2px;vertical-align:middle" />DuPage
     </label>
+    <label style="cursor:pointer;white-space:nowrap;user-select:none">
+      <input type="checkbox" class="county-toggle" value="lake" checked style="margin-right:2px;vertical-align:middle" />Lake
+    </label>
   </div>
   <div style="margin-top:6px;display:flex;align-items:center;gap:10px">
     <label style="font-size:12px;cursor:pointer;white-space:nowrap;user-select:none">
@@ -212,7 +215,7 @@ const NO_DATA_COLOR = "#e5e7eb";
 
 var map, geoLayer, electionData, muniLayerRef, communityLayerRef;
 var activeRaces = new Set(["race6"]);
-var activeCounties = new Set(["cook", "chicago", "dupage"]);
+var activeCounties = new Set(["cook", "chicago", "dupage", "lake"]);
 var communityAreasPerRace = {};
 var allRaces = Object.keys(RACE_CONFIG);
 var precinctWinners = {};
@@ -332,6 +335,7 @@ function getCountyLabel() {
   if (activeCounties.has('cook')) labels.push('Suburban Cook');
   if (activeCounties.has('chicago')) labels.push('Chicago');
   if (activeCounties.has('dupage')) labels.push('DuPage');
+  if (activeCounties.has('lake')) labels.push('Lake');
   return labels.join(' + ');
 }
 
@@ -486,11 +490,14 @@ Promise.all([
   fetch('dupage_election_data.json').then(function(r) { if (!r.ok) throw new Error('dupage_election_data: ' + r.status); return r.json(); }),
   fetch('dupage_municipalities.json').then(function(r) { if (!r.ok) throw new Error('dupage_municipalities: ' + r.status); return r.json(); }),
   fetch('chicago_community_areas.json').then(function(r) { if (!r.ok) throw new Error('chicago_community_areas: ' + r.status); return r.json(); }),
-  fetch('county_boundaries.json').then(function(r) { if (!r.ok) throw new Error('county_boundaries: ' + r.status); return r.json(); })
+  fetch('county_boundaries.json').then(function(r) { if (!r.ok) throw new Error('county_boundaries: ' + r.status); return r.json(); }),
+  fetch('lake_election_data.json').then(function(r) { if (!r.ok) throw new Error('lake_election_data: ' + r.status); return r.json(); }),
+  fetch('lake_municipalities.json').then(function(r) { if (!r.ok) throw new Error('lake_municipalities: ' + r.status); return r.json(); })
 ]).then(function(results) {
   var eData = results[0], muniData = results[1], chicagoData = results[2];
   var dupageData = results[3], dupageMuniData = results[4], communityData = results[5];
   var countyBoundaries = results[6];
+  var lakeData = results[7], lakeMuniData = results[8];
 
   // Compute winner_pct and total for Chicago features (same as Suburban Cook format)
   chicagoData.features.forEach(function(f) {
@@ -507,10 +514,10 @@ Promise.all([
     });
   });
 
-  // Merge Chicago and DuPage features into election data
-  eData.features = eData.features.concat(chicagoData.features).concat(dupageData.features);
-  // Merge DuPage municipality boundaries
-  muniData.features = muniData.features.concat(dupageMuniData.features);
+  // Merge Chicago, DuPage, and Lake features into election data
+  eData.features = eData.features.concat(chicagoData.features).concat(dupageData.features).concat(lakeData.features);
+  // Merge DuPage and Lake municipality boundaries
+  muniData.features = muniData.features.concat(dupageMuniData.features).concat(lakeMuniData.features);
   electionData = eData;
 
   // Recompute winners with tie-breaking: candidate listed first in RACE_CONFIG wins ties
@@ -705,6 +712,11 @@ Promise.all([
     if (dupageLayer) {
       var dupageOn = activeCounties.has('dupage');
       dupageLayer.setStyle(dupageOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 0, opacity: 0 });
+    }
+    var lakeLayer = countyBorderLayers['Lake County'];
+    if (lakeLayer) {
+      var lakeOn = activeCounties.has('lake');
+      lakeLayer.setStyle(lakeOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 0, opacity: 0 });
     }
   };
 
