@@ -846,7 +846,7 @@ Promise.all([
       var muniName = layer.feature.properties.name;
       var isHighlighted = highlightedMuniLayers.indexOf(layer) >= 0;
       var inDistrict = enabled && activeMunis.has(muniName);
-      if (isHighlighted && inDistrict) {
+      if (isHighlighted) {
         layer.setStyle({ weight: 2.5, color: '#e63946', opacity: 0.9 });
       } else {
         layer.setStyle({
