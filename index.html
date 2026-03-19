@@ -139,16 +139,16 @@ const RACE_CONFIG = {
   },
   race7: {
     title: "U.S. Representative, 7th Dist. — DEM",
-    candidates: ["La Shawn K. Ford","Kina Collins","Melissa Conyears-Ervin","Anthony Driver, Jr.","Thomas Fisher","Jason Friedman","Reed Showalter","Anabel Mendoza","Richard R. Boykin","Rory Hoskins","Jazmin J. Robinson","David Ehrlich","Felix Tello"],
+    candidates: ["La Shawn K. Ford","Melissa Conyears-Ervin","Anthony Driver, Jr.","Jason Friedman","Kina Collins","Thomas Fisher","Anabel Mendoza","Rory Hoskins","Reed Showalter","Richard R. Boykin","Jazmin J. Robinson","David Ehrlich","Felix Tello"],
     prefix: "race7_",
     flag: "has_race7"
   }
 };
 
+// ColorBrewer Paired palette (9 colors, no reds)
 const COLORS = [
   "#1f78b4","#33a02c","#ff7f00","#6a3d9a","#b15928",
-  "#e6ab02","#a6761d","#8dd3c7","#66a61e","#e78ac3",
-  "#b2df8a","#cab2d6","#fdbf6f"
+  "#a6cee3","#b2df8a","#fdbf6f","#cab2d6"
 ];
 const NO_DATA_COLOR = "#e5e7eb";
 
@@ -196,7 +196,7 @@ function buildLegend() {
   }
   let html = '<h3>' + cfg.title + '</h3>';
   cfg.candidates.forEach((c, i) => {
-    if (!winners.has(c) && i >= 6) return;
+    if (!winners.has(c)) return;
     html += '<div class="legend-item"><div class="legend-swatch" style="background:' +
       COLORS[i % COLORS.length] + '"></div><span>' + c + '</span></div>';
   });
