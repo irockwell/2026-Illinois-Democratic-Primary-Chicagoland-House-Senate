@@ -592,23 +592,8 @@ Promise.all([
   buildLegend();
   buildMuniList();
 
-  // Deduplicate municipality labels: only label each name once (use largest polygon)
-  var muniLabelSeen = {};
-  muniData.features.forEach(function(f) {
-    var name = f.properties.name;
-    if (!name) return;
-    // Estimate area from bounding box of first coordinate ring
-    var coords = f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates[0][0] : (f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] : []);
-    var area = 0;
-    if (coords.length > 0) {
-      var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      coords.forEach(function(c) { minX = Math.min(minX, c[0]); maxX = Math.max(maxX, c[0]); minY = Math.min(minY, c[1]); maxY = Math.max(maxY, c[1]); });
-      area = (maxX - minX) * (maxY - minY);
-    }
-    if (!muniLabelSeen[name] || area > muniLabelSeen[name]) {
-      muniLabelSeen[name] = area;
-    }
-  });
+  // Deduplicate municipality labels: only label each name once, preferring the first occurrence
+  // (Cook/DuPage data is loaded before Will/Lake/McHenry, so DuPage Naperville comes first)
   var muniLabeled = {};
   muniLayerRef = L.geoJSON(muniData, {
     style: { fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#1a1a2e', opacity: 0.5 },
@@ -616,15 +601,7 @@ Promise.all([
     onEachFeature: function(feature, layer) {
       var name = feature.properties.name;
       if (!name) return;
-      // Only label the largest polygon for each municipality name
-      var coords = feature.geometry.type === 'MultiPolygon' ? feature.geometry.coordinates[0][0] : (feature.geometry.type === 'Polygon' ? feature.geometry.coordinates[0] : []);
-      var area = 0;
-      if (coords.length > 0) {
-        var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        coords.forEach(function(c) { minX = Math.min(minX, c[0]); maxX = Math.max(maxX, c[0]); minY = Math.min(minY, c[1]); maxY = Math.max(maxY, c[1]); });
-        area = (maxX - minX) * (maxY - minY);
-      }
-      if (!muniLabeled[name] && area >= muniLabelSeen[name]) {
+      if (!muniLabeled[name]) {
         muniLabeled[name] = true;
         layer.bindTooltip(name, {
           permanent: true, direction: 'center', className: 'muni-label'
