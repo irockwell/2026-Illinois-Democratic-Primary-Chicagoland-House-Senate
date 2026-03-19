@@ -595,23 +595,40 @@ Promise.all([
   buildLegend();
   buildMuniList();
 
-  // Deduplicate municipality labels: only label each name once, preferring the first occurrence
-  // (Cook/DuPage data is loaded before Will/Lake/McHenry, so DuPage Naperville comes first)
-  var muniLabeled = {};
+  // Compute combined centroid for each municipality (handles multi-county municipalities)
+  var muniBounds = {};
+  muniData.features.forEach(function(f) {
+    var name = f.properties.name;
+    if (!name) return;
+    var coords = f.geometry.type === 'MultiPolygon'
+      ? [].concat.apply([], f.geometry.coordinates.map(function(p) { return p[0]; }))
+      : (f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] : []);
+    if (!muniBounds[name]) muniBounds[name] = [];
+    coords.forEach(function(c) { muniBounds[name].push(c); });
+  });
+  var muniCentroids = {};
+  Object.keys(muniBounds).forEach(function(name) {
+    var pts = muniBounds[name];
+    var sumLng = 0, sumLat = 0;
+    pts.forEach(function(c) { sumLng += c[0]; sumLat += c[1]; });
+    muniCentroids[name] = [sumLat / pts.length, sumLng / pts.length];
+  });
+
   muniLayerRef = L.geoJSON(muniData, {
     style: { fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#1a1a2e', opacity: 0.5 },
-    interactive: false, pane: 'muniPane',
-    onEachFeature: function(feature, layer) {
-      var name = feature.properties.name;
-      if (!name) return;
-      if (!muniLabeled[name]) {
-        muniLabeled[name] = true;
-        layer.bindTooltip(name, {
-          permanent: true, direction: 'center', className: 'muni-label'
-        });
-      }
-    }
+    interactive: false, pane: 'muniPane'
   }).addTo(map);
+
+  // Add a single label marker per municipality at combined centroid
+  var muniLabelMarkers = {};
+  Object.keys(muniCentroids).forEach(function(name) {
+    var latlng = muniCentroids[name];
+    var marker = L.marker(latlng, {
+      icon: L.divIcon({ className: 'muni-label', html: name, iconSize: null }),
+      interactive: false, pane: 'muniPane'
+    }).addTo(map);
+    muniLabelMarkers[name] = marker;
+  });
 
   // Add Chicago label
   var chicagoLabel = L.marker([41.8381, -87.6298], {
@@ -831,11 +848,11 @@ Promise.all([
         weight: inDistrict ? 1.5 : 0,
         opacity: inDistrict ? 0.5 : 0
       });
-      var tip = layer.getTooltip();
-      if (tip) {
-        var el = tip.getElement();
-        if (el) el.style.display = (show && activeMunis.has(muniName)) ? '' : 'none';
-      }
+    });
+    // Show/hide municipality label markers
+    Object.keys(muniLabelMarkers).forEach(function(name) {
+      var el = muniLabelMarkers[name].getElement();
+      if (el) el.style.display = (show && activeMunis.has(name)) ? '' : 'none';
     });
     var showChicago = show && activeMunis.has('Chicago');
     chicagoLabel.getElement().style.display = showChicago ? '' : 'none';
