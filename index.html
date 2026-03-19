@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Democratic Primary Election Results — Cook County, IL</title>
+<title>Democratic Primary Election Results — Illinois</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -116,7 +116,7 @@
 
 <div class="controls">
   <h2>March 17, 2026 Democratic Primary</h2>
-  <div class="subtitle">Cook County — Hover over a precinct for details</div>
+  <div class="subtitle">Hover over a precinct for details</div>
   <div style="margin-top:6px">
     <span class="race-btn active" data-race="race6">U.S. Senate</span>
     <span class="race-btn" data-race="race8">2nd Dist.</span>
@@ -127,9 +127,24 @@
     <span class="race-btn" data-race="race15">9th Dist.</span>
     <span class="race-btn" data-race="race16">10th Dist.</span>
   </div>
-  <div style="margin-top:8px;display:flex;align-items:center;gap:10px">
+  <div style="margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px">
+    <span style="color:#666;white-space:nowrap">Counties:</span>
+    <label style="cursor:pointer;white-space:nowrap;user-select:none">
+      <input type="checkbox" class="county-toggle" value="cook" checked style="margin-right:2px;vertical-align:middle" />Suburban Cook
+    </label>
+    <label style="cursor:pointer;white-space:nowrap;user-select:none">
+      <input type="checkbox" class="county-toggle" value="chicago" checked style="margin-right:2px;vertical-align:middle" />Chicago
+    </label>
+    <label style="cursor:pointer;white-space:nowrap;user-select:none">
+      <input type="checkbox" class="county-toggle" value="dupage" checked style="margin-right:2px;vertical-align:middle" />DuPage
+    </label>
+  </div>
+  <div style="margin-top:6px;display:flex;align-items:center;gap:10px">
     <label style="font-size:12px;cursor:pointer;white-space:nowrap;user-select:none">
       <input type="checkbox" id="muni-toggle" checked style="margin-right:4px;vertical-align:middle" />Boundaries
+    </label>
+    <label style="font-size:12px;cursor:pointer;white-space:nowrap;user-select:none">
+      <input type="checkbox" id="community-toggle" style="margin-right:4px;vertical-align:middle" />Community Areas
     </label>
     <div style="position:relative;flex:1">
       <input type="text" id="muni-search" placeholder="Search municipality..." autocomplete="off" />
@@ -195,14 +210,20 @@ const COLORS = [
 ];
 const NO_DATA_COLOR = "#e5e7eb";
 
-var map, geoLayer, electionData, muniLayerRef;
+var map, geoLayer, electionData, muniLayerRef, communityLayerRef;
 var activeRaces = new Set(["race6"]);
+var activeCounties = new Set(["cook", "chicago", "dupage"]);
 var allRaces = Object.keys(RACE_CONFIG);
 var precinctWinners = {};
 allRaces.forEach(function(r) { precinctWinners[r] = new Set(); });
 
+function getJurisdiction(props) {
+  return props.jurisdiction || (props.name && props.name.startsWith('CHICAGO') ? 'chicago' : 'cook');
+}
+
 // Find which active race applies to a precinct
 function getPrecinctRace(props) {
+  if (!activeCounties.has(getJurisdiction(props))) return null;
   for (var race of activeRaces) {
     if (props[RACE_CONFIG[race].flag]) return race;
   }
@@ -246,6 +267,9 @@ function getStyle(feature) {
   const p = feature.properties;
   var race = getPrecinctRace(p);
   var w = precinctWeight();
+  if (!activeCounties.has(getJurisdiction(p))) {
+    return { fillColor: NO_DATA_COLOR, fillOpacity: 0.05, weight: 0, color: "#ccc", opacity: 0 };
+  }
   if (!race) {
     return { fillColor: NO_DATA_COLOR, fillOpacity: 0.25, weight: Math.min(w, 0.4), color: "#ccc", opacity: 0.4 };
   }
@@ -271,6 +295,7 @@ function buildLegendForRace(race) {
   if (electionData) {
     electionData.features.forEach(function(f) {
       var p = f.properties;
+      if (!activeCounties.has(getJurisdiction(p))) return;
       if (p[cfg.flag]) {
         if (p[cfg.prefix + "winner"]) winners.add(p[cfg.prefix + "winner"]);
         cfg.candidates.forEach(function(c) {
@@ -295,6 +320,14 @@ function buildLegendForRace(race) {
   return html;
 }
 
+function getCountyLabel() {
+  var labels = [];
+  if (activeCounties.has('cook')) labels.push('Suburban Cook');
+  if (activeCounties.has('chicago')) labels.push('Chicago');
+  if (activeCounties.has('dupage')) labels.push('DuPage');
+  return labels.join(' + ');
+}
+
 function buildLegend() {
   var html = '';
   var raceList = Array.from(activeRaces);
@@ -302,6 +335,7 @@ function buildLegend() {
     if (idx > 0) html += '<div style="margin-top:10px;border-top:1px solid #eee;padding-top:8px"></div>';
     html += buildLegendForRace(race);
   });
+  html += '<div style="font-size:10px;color:#999;margin-top:6px">' + getCountyLabel() + '</div>';
   if (!activeRaces.has("race6")) {
     html += '<div class="legend-item" style="margin-top:4px"><div class="legend-swatch" style="background:' +
       NO_DATA_COLOR + '"></div><span style="color:#999">Not in district</span></div>';
@@ -443,10 +477,11 @@ Promise.all([
   fetch('municipalities.json').then(function(r) { if (!r.ok) throw new Error('municipalities: ' + r.status); return r.json(); }),
   fetch('chicago_election_data.json').then(function(r) { if (!r.ok) throw new Error('chicago_election_data: ' + r.status); return r.json(); }),
   fetch('dupage_election_data.json').then(function(r) { if (!r.ok) throw new Error('dupage_election_data: ' + r.status); return r.json(); }),
-  fetch('dupage_municipalities.json').then(function(r) { if (!r.ok) throw new Error('dupage_municipalities: ' + r.status); return r.json(); })
+  fetch('dupage_municipalities.json').then(function(r) { if (!r.ok) throw new Error('dupage_municipalities: ' + r.status); return r.json(); }),
+  fetch('chicago_community_areas.json').then(function(r) { if (!r.ok) throw new Error('chicago_community_areas: ' + r.status); return r.json(); })
 ]).then(function(results) {
   var eData = results[0], muniData = results[1], chicagoData = results[2];
-  var dupageData = results[3], dupageMuniData = results[4];
+  var dupageData = results[3], dupageMuniData = results[4], communityData = results[5];
 
   // Compute winner_pct and total for Chicago features (same as Suburban Cook format)
   chicagoData.features.forEach(function(f) {
@@ -502,6 +537,38 @@ Promise.all([
     interactive: false, pane: 'muniPane'
   }).addTo(map);
 
+  // Community area boundaries
+  communityLayerRef = L.geoJSON(communityData, {
+    style: { fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#8b4513', opacity: 0.6 },
+    interactive: false, pane: 'muniPane',
+    onEachFeature: function(feature, layer) {
+      if (feature.properties.name) {
+        layer.bindTooltip(feature.properties.name, {
+          permanent: true, direction: 'center', className: 'muni-label'
+        });
+      }
+    }
+  });
+  // Start hidden
+  window.updateCommunityAreas = function() {
+    var enabled = document.getElementById('community-toggle').checked;
+    var show = enabled && map.getZoom() >= 12;
+    if (enabled && !map.hasLayer(communityLayerRef)) {
+      communityLayerRef.addTo(map);
+    } else if (!enabled && map.hasLayer(communityLayerRef)) {
+      communityLayerRef.removeFrom(map);
+    }
+    if (communityLayerRef) {
+      communityLayerRef.eachLayer(function(layer) {
+        var tip = layer.getTooltip();
+        if (tip) {
+          var el = tip.getElement();
+          if (el) el.style.display = show ? '' : 'none';
+        }
+      });
+    }
+  };
+
   window.updateMuniBoundaries = function() {
     var enabled = document.getElementById('muni-toggle').checked;
     var show = enabled && map.getZoom() >= 12;
@@ -530,9 +597,11 @@ Promise.all([
   }
   map.on('zoomend', function() {
     window.updateMuniBoundaries();
+    window.updateCommunityAreas();
     if (geoLayer) geoLayer.setStyle(getStyle);
   });
   window.updateMuniBoundaries();
+  window.updateCommunityAreas();
 }).catch(function(err) { console.error('Load error:', err); alert('Failed to load data: ' + err.message); });
 
 // Municipality search and aggregation
@@ -703,6 +772,33 @@ document.addEventListener('click', function(e) {
 
 document.getElementById('muni-toggle').addEventListener('change', function() {
   if (muniLayerRef) updateMuniBoundaries();
+});
+
+document.getElementById('community-toggle').addEventListener('change', function() {
+  if (typeof updateCommunityAreas === 'function') updateCommunityAreas();
+});
+
+// County toggles
+document.querySelectorAll('.county-toggle').forEach(function(cb) {
+  cb.addEventListener('change', function() {
+    activeCounties.clear();
+    document.querySelectorAll('.county-toggle:checked').forEach(function(c) {
+      activeCounties.add(c.value);
+    });
+    // Ensure at least one county
+    if (activeCounties.size === 0) {
+      activeCounties.add(this.value);
+      this.checked = true;
+    }
+    if (geoLayer) geoLayer.setStyle(getStyle);
+    buildLegend();
+    updateMuniListForRace();
+    if (muniLayerRef) updateMuniBoundaries();
+    document.getElementById("info-panel").style.display = "none";
+    if (selectedPrecinctLayer) { geoLayer.resetStyle(selectedPrecinctLayer); }
+    selectedPrecinct = null;
+    selectedPrecinctLayer = null;
+  });
 });
 
 document.querySelectorAll('.race-btn').forEach(btn => {
