@@ -112,9 +112,12 @@
 
   .county-label {
     background: none !important; border: none !important; box-shadow: none !important;
+    overflow: visible !important;
   }
   .county-label span {
-    color: #1a1a2e; font-size: 14px; font-weight: 800; font-style: italic;
+    display: block;
+    transform: translate(-50%, -50%);
+    color: #1a1a2e; font-weight: 800; font-style: italic;
     text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff,
                  -1px 1px 0 #fff, 1px 1px 0 #fff,
                  0 -1px 0 #fff, 0 1px 0 #fff,
@@ -722,8 +725,8 @@ Promise.all([
       icon: L.divIcon({
         className: 'county-label',
         html: '<span>' + def.name + '</span>',
-        iconSize: [120, 20],
-        iconAnchor: [60, 10]
+        iconSize: [0, 0],
+        iconAnchor: [0, 0]
       }),
       interactive: false,
       pane: 'muniPane'
@@ -735,11 +738,14 @@ Promise.all([
   window.updateCountyLabels = function() {
     var zoom = map.getZoom();
     var show = zoom <= 11;
+    var fontSize = zoom <= 9 ? 11 : (zoom <= 10 ? 13 : 15);
     countyLabels.forEach(function(label) {
       var el = label.getElement();
       if (!el) return;
       var countyOn = label._checkCounties.some(function(c) { return activeCounties.has(c); });
       el.style.display = (show && countyOn) ? '' : 'none';
+      var span = el.querySelector('span');
+      if (span) span.style.fontSize = fontSize + 'px';
     });
   };
   window.updateCountyLabels();
