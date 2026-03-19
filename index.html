@@ -563,7 +563,7 @@ Promise.all([
 
   // Community area boundaries
   communityLayerRef = L.geoJSON(communityData, {
-    style: { fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#8b4513', opacity: 0.6 },
+    style: { fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#8b4513', opacity: 0.5 },
     interactive: false, pane: 'muniPane',
     onEachFeature: function(feature, layer) {
       if (feature.properties.name) {
@@ -594,15 +594,29 @@ Promise.all([
   };
 
   // County boundary outlines
-  L.geoJSON(countyBoundaries, {
+  var chicagoBorderLayer = null;
+  var countyBorderLayer = L.geoJSON(countyBoundaries, {
     style: function(feature) {
       if (feature.properties.faint) {
         return { fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#1a1a2e', opacity: 0.3, dashArray: '6,4' };
       }
       return { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' };
     },
-    interactive: false, pane: 'muniPane'
+    interactive: false, pane: 'muniPane',
+    onEachFeature: function(feature, layer) {
+      if (feature.properties.faint) chicagoBorderLayer = layer;
+    }
   }).addTo(map);
+
+  window.updateChicagoBorder = function() {
+    if (!chicagoBorderLayer) return;
+    var communityOn = document.getElementById('community-toggle').checked;
+    if (communityOn) {
+      chicagoBorderLayer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: 2.5, color: '#8b4513', opacity: 0.7, dashArray: '8,4' });
+    } else {
+      chicagoBorderLayer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#1a1a2e', opacity: 0.3, dashArray: '6,4' });
+    }
+  };
 
   window.updateMuniBoundaries = function() {
     var enabled = document.getElementById('muni-toggle').checked;
@@ -637,6 +651,7 @@ Promise.all([
   });
   window.updateMuniBoundaries();
   window.updateCommunityAreas();
+  window.updateChicagoBorder();
 }).catch(function(err) { console.error('Load error:', err); alert('Failed to load data: ' + err.message); });
 
 // Municipality search and aggregation
@@ -811,6 +826,7 @@ document.getElementById('muni-toggle').addEventListener('change', function() {
 
 document.getElementById('community-toggle').addEventListener('change', function() {
   if (typeof updateCommunityAreas === 'function') updateCommunityAreas();
+  if (typeof updateChicagoBorder === 'function') updateChicagoBorder();
 });
 
 // County toggles
