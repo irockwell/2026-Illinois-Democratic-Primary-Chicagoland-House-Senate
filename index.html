@@ -711,11 +711,11 @@ Promise.all([
   // County labels
   var countyLabels = [];
   var countyLabelMap = {
-    'Cook County': { name: 'Cook County', jurisdiction: 'cook' },
+    'Cook County': { name: 'Cook', jurisdiction: 'cook' },
     'Chicago': { name: 'Chicago', jurisdiction: 'chicago' },
-    'DuPage County': { name: 'DuPage County', jurisdiction: 'dupage' },
-    'Lake County': { name: 'Lake County', jurisdiction: 'lake' },
-    'McHenry County': { name: 'McHenry County', jurisdiction: 'mchenry' }
+    'DuPage County': { name: 'DuPage', jurisdiction: 'dupage' },
+    'Lake County': { name: 'Lake', jurisdiction: 'lake' },
+    'McHenry County': { name: 'McHenry', jurisdiction: 'mchenry' }
   };
   countyBoundaries.features.forEach(function(feat) {
     var info = countyLabelMap[feat.properties.name];
