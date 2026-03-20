@@ -870,12 +870,7 @@ Promise.all([
     if (!chicagoOn || !outlineOn) {
       chicagoBorderLayer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: 0, opacity: 0 });
     } else {
-      var communityOn = document.getElementById('community-toggle').checked;
-      if (communityOn) {
-        chicagoBorderLayer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: 2.5, color: '#8b4513', opacity: 0.7, dashArray: '8,4' });
-      } else {
-        chicagoBorderLayer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#1a1a2e', opacity: 0.3, dashArray: '6,4' });
-      }
+      chicagoBorderLayer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: 2.5, color: '#8b4513', opacity: 0.7, dashArray: '8,4' });
     }
     // Hide/show Cook and DuPage borders based on county toggles
     var cookLayer = countyBorderLayers['Cook County'];
