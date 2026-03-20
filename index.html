@@ -255,8 +255,8 @@ function isInDistrict(props, race) {
   var cfg = RACE_CONFIG[race];
   // Senate race: use has_race6 flag
   if (!cfg.cd) return props[cfg.flag];
-  // CD races: check cd property first, fall back to has_raceX flag
-  if (props.cd && props.cd === cfg.cd) return true;
+  // CD races: use cd property if available, otherwise fall back to has_raceX
+  if (props.cd) return props.cd === cfg.cd;
   return props[cfg.flag];
 }
 
