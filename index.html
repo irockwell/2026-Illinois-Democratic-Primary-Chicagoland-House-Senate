@@ -18,9 +18,9 @@
   .controls h2 { font-size: 15px; margin-bottom: 4px; color: #1a1a2e; }
   .controls .subtitle { font-size: 11px; color: #666; margin-bottom: 10px; }
   .race-btn {
-    display: inline-block; padding: 7px 14px; margin: 2px 4px 2px 0;
-    border: 2px solid #1a1a2e; border-radius: 6px; cursor: pointer;
-    font-size: 12px; font-weight: 600; background: white; color: #1a1a2e;
+    display: inline-block; padding: 4px 10px; margin: 2px 3px 2px 0;
+    border: 1.5px solid #1a1a2e; border-radius: 5px; cursor: pointer;
+    font-size: 11px; font-weight: 600; background: white; color: #1a1a2e;
     transition: all 0.15s;
   }
   .race-btn.active { background: #1a1a2e; color: white; }
@@ -167,7 +167,7 @@
     </label>
     <a href="#" id="county-select-toggle" style="font-size:11px;margin-left:4px;white-space:nowrap">Deselect all</a>
   </div>
-  <div style="margin-top:6px;display:flex;align-items:center;gap:10px">
+  <div style="margin-top:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
     <label style="font-size:12px;cursor:pointer;white-space:nowrap;user-select:none">
       <input type="checkbox" id="muni-toggle" style="margin-right:4px;vertical-align:middle" />Municipalities
     </label>
@@ -177,10 +177,10 @@
     <label style="font-size:12px;cursor:pointer;white-space:nowrap;user-select:none">
       <input type="checkbox" id="chicago-outline-toggle" checked style="margin-right:4px;vertical-align:middle" />Chicago Outline
     </label>
-    <div style="position:relative;flex:1">
-      <input type="text" id="muni-search" placeholder="Search municipality..." autocomplete="off" />
-      <div id="muni-dropdown"></div>
-    </div>
+  </div>
+  <div style="margin-top:6px;position:relative">
+    <input type="text" id="muni-search" placeholder="Search municipality..." autocomplete="off" />
+    <div id="muni-dropdown"></div>
   </div>
 </div>
 
