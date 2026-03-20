@@ -307,9 +307,6 @@ function getStyle(feature) {
     return { fillColor: NO_DATA_COLOR, fillOpacity: 0.05, weight: 0, color: "#ccc", opacity: 0 };
   }
   if (!race) {
-    if (activeRaces.has("race6")) {
-      return { fillColor: NO_DATA_COLOR, fillOpacity: 0.05, weight: 0, color: "#ccc", opacity: 0 };
-    }
     return { fillColor: NO_DATA_COLOR, fillOpacity: 0.25, weight: Math.min(w, 0.4), color: "#ccc", opacity: 0.4 };
   }
   const cfg = RACE_CONFIG[race];
