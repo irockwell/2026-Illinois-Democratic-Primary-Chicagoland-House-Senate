@@ -137,7 +137,7 @@
   <div class="section">
     <span class="race-btn active" data-race="race6">U.S. Senate</span>
   </div>
-  <div class="section">
+  <div class="section" style="display:grid;grid-template-columns:1fr 1fr;gap:2px 4px">
     <span class="race-btn" data-race="race8">2nd Dist.</span>
     <span class="race-btn" data-race="race12">5th Dist.</span>
     <span class="race-btn" data-race="race13">6th Dist.</span>
@@ -718,7 +718,9 @@ Promise.all([
     }
     // Compute centroid of a polygon (average of exterior ring)
     function centroidOf(geom) {
+      if (!geom || !geom.coordinates || !geom.coordinates[0]) return [0, 0];
       var ring = geom.type === 'MultiPolygon' ? geom.coordinates[0][0] : geom.coordinates[0];
+      if (!ring || ring.length === 0) return [0, 0];
       var sx = 0, sy = 0;
       for (var i = 0; i < ring.length; i++) { sx += ring[i][0]; sy += ring[i][1]; }
       return [sx / ring.length, sy / ring.length];
