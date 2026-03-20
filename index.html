@@ -12,7 +12,7 @@
 
   .controls {
     position: absolute; top: 12px; left: 12px; z-index: 1000;
-    background: white; border-radius: 8px; padding: 14px 18px;
+    background: white; border-radius: 8px; padding: 16px 20px 18px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.2); max-width: 440px;
   }
   .controls h2 { font-size: 15px; margin-bottom: 4px; color: #1a1a2e; }
@@ -132,7 +132,7 @@
 <div class="controls">
   <h2>March 17, 2026 Democratic Primary</h2>
   <div class="subtitle">Hover over a precinct for details</div>
-  <div style="margin-top:6px">
+  <div style="margin-top:10px">
     <span class="race-btn active" data-race="race6">U.S. Senate</span>
     <span class="race-btn" data-race="race8">2nd Dist.</span>
     <span class="race-btn" data-race="race12">5th Dist.</span>
@@ -142,7 +142,7 @@
     <span class="race-btn" data-race="race15">9th Dist.</span>
     <span class="race-btn" data-race="race16">10th Dist.</span>
   </div>
-  <div style="margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px">
+  <div style="margin-top:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px">
     <span style="color:#666;white-space:nowrap">Counties:</span>
     <label style="cursor:pointer;white-space:nowrap;user-select:none">
       <input type="checkbox" class="county-toggle" value="cook" checked style="margin-right:2px;vertical-align:middle" />Suburban Cook
@@ -167,7 +167,7 @@
     </label>
     <a href="#" id="county-select-toggle" style="font-size:11px;margin-left:4px;white-space:nowrap">Deselect all</a>
   </div>
-  <div style="margin-top:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center">
+  <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
     <label style="font-size:12px;cursor:pointer;white-space:nowrap;user-select:none">
       <input type="checkbox" id="muni-toggle" style="margin-right:4px;vertical-align:middle" />Municipalities
     </label>
@@ -178,7 +178,7 @@
       <input type="checkbox" id="chicago-outline-toggle" checked style="margin-right:4px;vertical-align:middle" />Chicago Outline
     </label>
   </div>
-  <div style="margin-top:6px;position:relative;display:flex;justify-content:center">
+  <div style="margin-top:10px;position:relative">
     <input type="text" id="muni-search" placeholder="Search municipality..." autocomplete="off" />
     <div id="muni-dropdown"></div>
   </div>
