@@ -12,15 +12,16 @@
 
   .controls {
     position: absolute; top: 0; left: 0; z-index: 1000;
-    background: white; border-radius: 0 0 8px 0; padding: 14px 16px 16px;
-    box-shadow: 2px 2px 12px rgba(0,0,0,0.2); width: 260px;
+    background: white; border-radius: 0 0 8px 0; padding: 12px 14px 14px;
+    box-shadow: 2px 2px 12px rgba(0,0,0,0.2); width: 220px;
   }
-  .controls h2 { font-size: 15px; margin-bottom: 4px; color: #1a1a2e; }
-  .controls .subtitle { font-size: 11px; color: #666; margin-bottom: 10px; }
+  .controls h2 { font-size: 14px; margin-bottom: 3px; color: #1a1a2e; }
+  .controls .subtitle { font-size: 10px; color: #666; margin-bottom: 8px; }
+  .controls .section { padding: 8px 0; border-bottom: 1px solid #e8e8e8; }
   .race-btn {
-    display: inline-block; padding: 4px 10px; margin: 2px 3px 2px 0;
-    border: 1.5px solid #1a1a2e; border-radius: 5px; cursor: pointer;
-    font-size: 11px; font-weight: 600; background: white; color: #1a1a2e;
+    display: inline-block; padding: 3px 7px; margin: 1px 2px 1px 0;
+    border: 1.5px solid #1a1a2e; border-radius: 4px; cursor: pointer;
+    font-size: 10px; font-weight: 600; background: white; color: #1a1a2e;
     transition: all 0.15s;
   }
   .race-btn.active { background: #1a1a2e; color: white; }
@@ -62,8 +63,8 @@
   .info-panel .meta { font-size: 11px; color: #888; margin-top: 10px; border-top: 1px solid #eee; padding-top: 8px; }
 
   #muni-search {
-    width: 200px; padding: 5px 8px; border: 1.5px solid #ccc; border-radius: 6px;
-    font-size: 12px; outline: none;
+    width: 100%; padding: 5px 8px; border: 1.5px solid #ccc; border-radius: 6px;
+    font-size: 11px; outline: none; box-sizing: border-box;
   }
   #muni-search:focus { border-color: #1a1a2e; }
   #muni-dropdown {
@@ -132,10 +133,10 @@
 <div class="controls">
   <h2>March 17, 2026 Democratic Primary</h2>
   <div class="subtitle">Hover over a precinct for details</div>
-  <div style="margin-top:10px;padding-bottom:10px;border-bottom:1px solid #e0e0e0">
+  <div class="section">
     <span class="race-btn active" data-race="race6">U.S. Senate</span>
   </div>
-  <div style="margin-top:10px;padding-bottom:10px;border-bottom:1px solid #e0e0e0">
+  <div class="section">
     <span class="race-btn" data-race="race8">2nd Dist.</span>
     <span class="race-btn" data-race="race12">5th Dist.</span>
     <span class="race-btn" data-race="race13">6th Dist.</span>
@@ -144,43 +145,43 @@
     <span class="race-btn" data-race="race15">9th Dist.</span>
     <span class="race-btn" data-race="race16">10th Dist.</span>
   </div>
-  <div style="margin-top:10px;padding-bottom:10px;border-bottom:1px solid #e0e0e0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px">
+  <div class="section" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:11px">
     <span style="color:#666;white-space:nowrap">Counties:</span>
     <label style="cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" class="county-toggle" value="cook" checked style="margin-right:2px;vertical-align:middle" />Suburban Cook
+      <input type="checkbox" class="county-toggle" value="cook" checked style="margin-right:1px;vertical-align:middle" />Suburban Cook
     </label>
     <label style="cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" class="county-toggle" value="chicago" checked style="margin-right:2px;vertical-align:middle" />Chicago
+      <input type="checkbox" class="county-toggle" value="chicago" checked style="margin-right:1px;vertical-align:middle" />Chicago
     </label>
     <label style="cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" class="county-toggle" value="dupage" checked style="margin-right:2px;vertical-align:middle" />DuPage
+      <input type="checkbox" class="county-toggle" value="dupage" checked style="margin-right:1px;vertical-align:middle" />DuPage
     </label>
     <label style="cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" class="county-toggle" value="lake" checked style="margin-right:2px;vertical-align:middle" />Lake
+      <input type="checkbox" class="county-toggle" value="lake" checked style="margin-right:1px;vertical-align:middle" />Lake
     </label>
     <label style="cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" class="county-toggle" value="mchenry" checked style="margin-right:2px;vertical-align:middle" />McHenry
+      <input type="checkbox" class="county-toggle" value="mchenry" checked style="margin-right:1px;vertical-align:middle" />McHenry
     </label>
     <label style="cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" class="county-toggle" value="will" checked style="margin-right:2px;vertical-align:middle" />Will
+      <input type="checkbox" class="county-toggle" value="will" checked style="margin-right:1px;vertical-align:middle" />Will
     </label>
     <label style="cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" class="county-toggle" value="kane" checked style="margin-right:2px;vertical-align:middle" />Kane
+      <input type="checkbox" class="county-toggle" value="kane" checked style="margin-right:1px;vertical-align:middle" />Kane
     </label>
-    <a href="#" id="county-select-toggle" style="font-size:11px;margin-left:4px;white-space:nowrap">Deselect all</a>
+    <a href="#" id="county-select-toggle" style="font-size:10px;margin-left:2px;white-space:nowrap">Deselect all</a>
   </div>
-  <div style="margin-top:10px;padding-bottom:10px;border-bottom:1px solid #e0e0e0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-    <label style="font-size:12px;cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" id="muni-toggle" style="margin-right:4px;vertical-align:middle" />Municipalities
+  <div class="section" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <label style="font-size:11px;cursor:pointer;white-space:nowrap;user-select:none">
+      <input type="checkbox" id="muni-toggle" style="margin-right:3px;vertical-align:middle" />Municipalities
     </label>
-    <label style="font-size:12px;cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" id="community-toggle" style="margin-right:4px;vertical-align:middle" />Community Areas
+    <label style="font-size:11px;cursor:pointer;white-space:nowrap;user-select:none">
+      <input type="checkbox" id="community-toggle" style="margin-right:3px;vertical-align:middle" />Community Areas
     </label>
-    <label style="font-size:12px;cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" id="chicago-outline-toggle" checked style="margin-right:4px;vertical-align:middle" />Chicago Outline
+    <label style="font-size:11px;cursor:pointer;white-space:nowrap;user-select:none">
+      <input type="checkbox" id="chicago-outline-toggle" checked style="margin-right:3px;vertical-align:middle" />Chicago Outline
     </label>
   </div>
-  <div style="margin-top:10px;position:relative">
+  <div style="padding-top:8px;position:relative">
     <input type="text" id="muni-search" placeholder="Search municipality..." autocomplete="off" />
     <div id="muni-dropdown"></div>
   </div>
@@ -782,7 +783,8 @@ Promise.all([
   var countyBorderLayer = L.geoJSON(countyBoundaries, {
     style: function(feature) {
       if (feature.properties.faint) {
-        return { fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#1a1a2e', opacity: 0.3, dashArray: '6,4' };
+        // Chicago outline — hidden by default, toggle controls visibility
+        return { fillColor: 'transparent', fillOpacity: 0, weight: 0, opacity: 0 };
       }
       return { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' };
     },
@@ -867,9 +869,8 @@ Promise.all([
 
   window.updateChicagoBorder = function() {
     if (!chicagoBorderLayer) return;
-    var chicagoOn = activeCounties.has('chicago');
     var outlineOn = document.getElementById('chicago-outline-toggle').checked;
-    if (!chicagoOn || !outlineOn) {
+    if (!outlineOn) {
       chicagoBorderLayer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: 0, opacity: 0 });
     } else {
       chicagoBorderLayer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: 2.5, color: '#8b4513', opacity: 0.7, dashArray: '8,4' });
