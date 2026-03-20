@@ -145,11 +145,18 @@ def parse_dupage_sheet(wb, sheet_name):
             votes[cand] = v
             total += v
 
-        results[key] = {
-            "registered": registered,
-            "votes": votes,
-            "total": total
-        }
+        # Sum across vote-type rows for the same precinct
+        if key in results:
+            results[key]["registered"] = max(results[key]["registered"], registered)
+            results[key]["total"] += total
+            for cand, v in votes.items():
+                results[key]["votes"][cand] = results[key]["votes"].get(cand, 0) + v
+        else:
+            results[key] = {
+                "registered": registered,
+                "votes": votes,
+                "total": total
+            }
 
     return candidates, results
 
