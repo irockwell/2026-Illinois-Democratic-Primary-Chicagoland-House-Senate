@@ -538,7 +538,8 @@ Promise.all([
   fetch('will_election_data.json').then(function(r) { if (!r.ok) throw new Error('will_election_data: ' + r.status); return r.json(); }),
   fetch('will_municipalities.json').then(function(r) { if (!r.ok) throw new Error('will_municipalities: ' + r.status); return r.json(); }),
   fetch('kane_election_data.json').then(function(r) { if (!r.ok) throw new Error('kane_election_data: ' + r.status); return r.json(); }),
-  fetch('kane_municipalities.json').then(function(r) { if (!r.ok) throw new Error('kane_municipalities: ' + r.status); return r.json(); })
+  fetch('kane_municipalities.json').then(function(r) { if (!r.ok) throw new Error('kane_municipalities: ' + r.status); return r.json(); }),
+  fetch('congressional_districts.json').then(function(r) { if (!r.ok) throw new Error('congressional_districts: ' + r.status); return r.json(); })
 ]).then(function(results) {
   var eData = results[0], muniData = results[1], chicagoData = results[2];
   var dupageData = results[3], dupageMuniData = results[4], communityData = results[5];
@@ -547,6 +548,7 @@ Promise.all([
   var mchenryData = results[9], mchenryMuniData = results[10];
   var willData = results[11], willMuniData = results[12];
   var kaneData = results[13], kaneMuniData = results[14];
+  var congressionalDistricts = results[15];
 
   // Compute winner_pct and total for Chicago features (same as Suburban Cook format)
   chicagoData.features.forEach(function(f) {
@@ -789,6 +791,37 @@ Promise.all([
     }
   }).addTo(map);
 
+  // Congressional district boundary outline
+  var cdBorderLayers = {};
+  var cdBorderGroup = L.geoJSON(congressionalDistricts, {
+    style: { fillColor: 'transparent', fillOpacity: 0, weight: 0, opacity: 0 },
+    interactive: false, pane: 'muniPane',
+    onEachFeature: function(feature, layer) {
+      cdBorderLayers[feature.properties.cd] = layer;
+    }
+  }).addTo(map);
+
+  window.updateCDBorder = function() {
+    var activeCD = null;
+    for (var race of activeRaces) {
+      var cfg = RACE_CONFIG[race];
+      if (cfg.cd) activeCD = cfg.cd;
+    }
+    Object.keys(cdBorderLayers).forEach(function(cd) {
+      if (cd === activeCD) {
+        cdBorderLayers[cd].setStyle({
+          fillColor: 'transparent', fillOpacity: 0,
+          weight: 2.5, color: '#d32f2f', opacity: 0.85
+        });
+      } else {
+        cdBorderLayers[cd].setStyle({
+          fillColor: 'transparent', fillOpacity: 0,
+          weight: 0, opacity: 0
+        });
+      }
+    });
+  };
+
   // County labels
   var countyLabels = [];
   var countyLabelDefs = [
@@ -917,6 +950,7 @@ Promise.all([
   window.updateMuniBoundaries();
   window.updateCommunityAreas();
   window.updateChicagoBorder();
+  window.updateCDBorder();
 }).catch(function(err) { console.error('Load error:', err); alert('Failed to load data: ' + err.message); });
 
 // Municipality search and aggregation
@@ -1189,6 +1223,7 @@ document.querySelectorAll('.race-btn').forEach(btn => {
     }
     if (muniLayerRef) updateMuniBoundaries();
     if (typeof updateCommunityAreas === 'function') updateCommunityAreas();
+    if (typeof updateCDBorder === 'function') updateCDBorder();
     // Deselect precinct
     if (selectedPrecinctLayer) { geoLayer.resetStyle(selectedPrecinctLayer); }
     selectedPrecinct = null;
