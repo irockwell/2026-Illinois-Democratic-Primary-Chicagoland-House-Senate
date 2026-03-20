@@ -250,21 +250,11 @@ function getJurisdiction(props) {
   return props.jurisdiction || (props.name && props.name.startsWith('CHICAGO') ? 'chicago' : 'cook');
 }
 
-// Check if a precinct is in a given congressional district
-function isInDistrict(props, race) {
-  var cfg = RACE_CONFIG[race];
-  // Senate race: use has_race6 flag
-  if (!cfg.cd) return props[cfg.flag];
-  // CD races: use cd property if available, otherwise fall back to has_raceX
-  if (props.cd) return props.cd === cfg.cd;
-  return props[cfg.flag];
-}
-
 // Find which active race applies to a precinct
 function getPrecinctRace(props) {
   if (!activeCounties.has(getJurisdiction(props))) return null;
   for (var race of activeRaces) {
-    if (isInDistrict(props, race)) return race;
+    if (props[RACE_CONFIG[race].flag]) return race;
   }
   return null;
 }
@@ -314,11 +304,6 @@ function getStyle(feature) {
     return { fillColor: NO_DATA_COLOR, fillOpacity: 0.25, weight: Math.min(w, 0.4), color: "#ccc", opacity: 0.4 };
   }
   const cfg = RACE_CONFIG[race];
-  const total = p[cfg.prefix + "total"];
-  // In district but no vote data — show faint district color
-  if (!total || total === 0) {
-    return { fillColor: "#b0c4de", fillOpacity: 0.3, weight: Math.min(w, 0.4), color: "#b0c4de", opacity: 0.4 };
-  }
   const pct = p[cfg.prefix + "winner_pct"];
   const opacity = Math.min(0.85, Math.max(0.35, pct / 100 * 1.6));
   return {
