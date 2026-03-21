@@ -332,6 +332,19 @@ function highlightStyle() {
   return { weight: 3, color: "#ffff00", opacity: 1 };
 }
 
+// Disable pointer events on transparent/inactive precincts so they don't block hover
+function updatePointerEvents() {
+  if (!geoLayer) return;
+  geoLayer.eachLayer(function(l) {
+    if (!l._path) return;
+    var p = l.feature.properties;
+    var race = getPrecinctRace(p);
+    var isInactive = !activeCounties.has(getJurisdiction(p));
+    var isTransparentSplit = !race && p.name && p.name.indexOf('_CD') >= 0;
+    l._path.style.pointerEvents = (isInactive || isTransparentSplit) ? 'none' : '';
+  });
+}
+
 function buildLegendForRace(race) {
   var cfg = RACE_CONFIG[race];
   var winners = new Set();
@@ -664,6 +677,7 @@ Promise.all([
 
   geoLayer = L.geoJSON(eData, { style: getStyle, onEachFeature: onEachFeature }).addTo(map);
   map.fitBounds(geoLayer.getBounds());
+  updatePointerEvents();
   buildLegend();
   buildMuniList();
 
@@ -1002,7 +1016,7 @@ Promise.all([
     window.updateMuniBoundaries();
     window.updateCommunityAreas();
     window.updateCountyLabels();
-    if (geoLayer) geoLayer.setStyle(getStyle);
+    if (geoLayer) { geoLayer.setStyle(getStyle); updatePointerEvents(); }
   });
   window.updateMuniBoundaries();
   window.updateCommunityAreas();
@@ -1231,7 +1245,7 @@ function updateCountySelectToggle() {
 }
 
 function applyCountyChange() {
-  if (geoLayer) geoLayer.setStyle(getStyle);
+  if (geoLayer) { geoLayer.setStyle(getStyle); updatePointerEvents(); }
   buildLegend();
   updateMuniListForRace();
   if (muniLayerRef) updateMuniBoundaries();
@@ -1267,7 +1281,7 @@ document.querySelectorAll('.race-btn').forEach(btn => {
       b.classList.toggle('active', activeRaces.has(b.dataset.race));
     });
 
-    if (geoLayer) geoLayer.setStyle(getStyle);
+    if (geoLayer) { geoLayer.setStyle(getStyle); updatePointerEvents(); }
     buildLegend();
     updateMuniListForRace();
     document.getElementById("info-panel").style.display = "none";
