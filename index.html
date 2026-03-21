@@ -308,14 +308,19 @@ function getStyle(feature) {
     return { fillColor: NO_DATA_COLOR, fillOpacity: 0.05, weight: 0, color: "#ccc", opacity: 0 };
   }
   if (!race) {
+    // Split CD precincts with no matching race: make fully transparent so parent precinct shows through
+    if (p.name && p.name.indexOf('_CD') >= 0) {
+      return { fillColor: 'transparent', fillOpacity: 0, weight: 0, color: 'transparent', opacity: 0 };
+    }
     return { fillColor: NO_DATA_COLOR, fillOpacity: 0.25, weight: Math.min(w, 0.4), color: "#ccc", opacity: 0.4 };
   }
   const cfg = RACE_CONFIG[race];
   const total = p[cfg.prefix + "total"];
-  if (!total || total === 0) {
+  const winner = p[cfg.prefix + "winner"];
+  if (!total || total === 0 || !winner) {
     return { fillColor: NO_DATA_COLOR, fillOpacity: 0.15, weight: Math.min(w, 0.3), color: "#ccc", opacity: 0.3 };
   }
-  const pct = p[cfg.prefix + "winner_pct"];
+  const pct = p[cfg.prefix + "winner_pct"] || 0;
   const opacity = Math.min(0.85, Math.max(0.35, pct / 100 * 1.6));
   return {
     fillColor: getCandidateColor(p[cfg.prefix + "winner"], race),
@@ -456,25 +461,62 @@ function buildInfoPanel(props) {
 var selectedPrecinct = null;
 var selectedPrecinctLayer = null;
 
+// For split CD precincts with no active race, find the parent precinct layer
+function findParentLayer(name) {
+  if (!name || name.indexOf('_CD') < 0) return null;
+  var baseName = name.replace(/_CD\d+$/, '');
+  var parent = null;
+  geoLayer.eachLayer(function(l) {
+    if (l.feature.properties.name === baseName) parent = l;
+  });
+  return parent;
+}
+
 function onEachFeature(feature, layer) {
   layer.on({
     mouseover: function(e) {
+      // Skip transparent split precincts — delegate to parent
+      var race = getPrecinctRace(feature.properties);
+      if (!race && feature.properties.name && feature.properties.name.indexOf('_CD') >= 0) {
+        var parent = findParentLayer(feature.properties.name);
+        if (parent && !selectedPrecinct) {
+          if (selectedPrecinctLayer !== parent) {
+            parent.setStyle(highlightStyle());
+            parent.bringToFront();
+          }
+          var parentRace = getPrecinctRace(parent.feature.properties);
+          if (parentRace) {
+            var muni = parent.feature.properties.municipality;
+            if (muni && muni !== 'Unincorporated' && !selectedMuni) {
+              showMuniPanel(muni, false, parentRace);
+            }
+          }
+          buildInfoPanel(parent.feature.properties);
+        }
+        return;
+      }
       if (selectedPrecinctLayer !== e.target) {
         e.target.setStyle(highlightStyle());
         e.target.bringToFront();
       }
       if (!selectedPrecinct) {
-        var hoverRace = getPrecinctRace(feature.properties);
-        if (hoverRace) {
+        if (race) {
           var muni = feature.properties.municipality;
           if (muni && muni !== 'Unincorporated' && !selectedMuni) {
-            showMuniPanel(muni, false, hoverRace);
+            showMuniPanel(muni, false, race);
           }
         }
         buildInfoPanel(feature.properties);
       }
     },
     mouseout: function(e) {
+      // Also reset parent if we delegated
+      if (!getPrecinctRace(feature.properties) && feature.properties.name && feature.properties.name.indexOf('_CD') >= 0) {
+        var parent = findParentLayer(feature.properties.name);
+        if (parent && selectedPrecinctLayer !== parent) {
+          geoLayer.resetStyle(parent);
+        }
+      }
       if (selectedPrecinctLayer !== e.target) {
         geoLayer.resetStyle(e.target);
       }
@@ -486,6 +528,15 @@ function onEachFeature(feature, layer) {
       }
     },
     click: function(e) {
+      // For transparent split precincts, delegate click to parent
+      if (!getPrecinctRace(feature.properties) && feature.properties.name && feature.properties.name.indexOf('_CD') >= 0) {
+        var parent = findParentLayer(feature.properties.name);
+        if (parent) {
+          parent.fire('click', e);
+        }
+        L.DomEvent.stopPropagation(e);
+        return;
+      }
       clearMuniHighlight();
       if (selectedPrecinctLayer === e.target) {
         // Toggle off — clicking same precinct deselects
@@ -593,6 +644,10 @@ Promise.all([
         var total = p[cfg.prefix + 'total'] || 0;
         p[cfg.prefix + 'winner'] = bestName;
         p[cfg.prefix + 'winner_pct'] = total > 0 ? parseFloat((bestVotes / total * 100).toFixed(1)) : 0;
+      } else {
+        // No votes cast — clear stale winner data so precinct shows as no-data
+        delete p[cfg.prefix + 'winner'];
+        delete p[cfg.prefix + 'winner_pct'];
       }
     });
   });
@@ -882,32 +937,32 @@ Promise.all([
     var cookLayer = countyBorderLayers['Cook County'];
     if (cookLayer) {
       var cookOn = activeCounties.has('cook') || activeCounties.has('chicago');
-      cookLayer.setStyle(cookOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 0, opacity: 0 });
+      cookLayer.setStyle(cookOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 2, color: '#1a1a2e', opacity: 0.5, dashArray: '8,4' });
     }
     var dupageLayer = countyBorderLayers['DuPage County'];
     if (dupageLayer) {
       var dupageOn = activeCounties.has('dupage');
-      dupageLayer.setStyle(dupageOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 0, opacity: 0 });
+      dupageLayer.setStyle(dupageOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 2, color: '#1a1a2e', opacity: 0.5, dashArray: '8,4' });
     }
     var lakeLayer = countyBorderLayers['Lake County'];
     if (lakeLayer) {
       var lakeOn = activeCounties.has('lake');
-      lakeLayer.setStyle(lakeOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 0, opacity: 0 });
+      lakeLayer.setStyle(lakeOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 2, color: '#1a1a2e', opacity: 0.5, dashArray: '8,4' });
     }
     var mchenryLayer = countyBorderLayers['McHenry County'];
     if (mchenryLayer) {
       var mchenryOn = activeCounties.has('mchenry');
-      mchenryLayer.setStyle(mchenryOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 0, opacity: 0 });
+      mchenryLayer.setStyle(mchenryOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 2, color: '#1a1a2e', opacity: 0.5, dashArray: '8,4' });
     }
     var willLayer = countyBorderLayers['Will County'];
     if (willLayer) {
       var willOn = activeCounties.has('will');
-      willLayer.setStyle(willOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 0, opacity: 0 });
+      willLayer.setStyle(willOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 2, color: '#1a1a2e', opacity: 0.5, dashArray: '8,4' });
     }
     var kaneLayer = countyBorderLayers['Kane County'];
     if (kaneLayer) {
       var kaneOn = activeCounties.has('kane');
-      kaneLayer.setStyle(kaneOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 0, opacity: 0 });
+      kaneLayer.setStyle(kaneOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 2, color: '#1a1a2e', opacity: 0.5, dashArray: '8,4' });
     }
   };
 
