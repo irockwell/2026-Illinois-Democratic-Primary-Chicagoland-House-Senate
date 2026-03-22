@@ -347,6 +347,9 @@ function getStyle(feature) {
 function highlightStyle() {
   return { weight: 3, color: "#ffff00", opacity: 1 };
 }
+function siblingHighlightStyle() {
+  return { weight: 0, color: "#ffff00", opacity: 0 };
+}
 
 // Disable pointer events on transparent/inactive precincts so they don't block hover
 function updatePointerEvents() {
@@ -543,11 +546,10 @@ function onEachFeature(feature, layer) {
       if (selectedPrecinctLayer !== e.target) {
         e.target.setStyle(highlightStyle());
         e.target.bringToFront();
-        // Also highlight sibling split CD layers
+        // Also highlight sibling split CD layers (no border to avoid internal seam)
         findSiblingLayers(feature.properties.name).forEach(function(sib) {
           if (selectedPrecinctLayer !== sib) {
-            sib.setStyle(highlightStyle());
-            sib.bringToFront();
+            sib.setStyle(siblingHighlightStyle());
           }
         });
       }
@@ -623,10 +625,9 @@ function onEachFeature(feature, layer) {
         selectedPrecinctLayer = e.target;
         e.target.setStyle(highlightStyle());
         e.target.bringToFront();
-        // Also highlight sibling split CD layers
+        // Also highlight sibling split CD layers (no border to avoid internal seam)
         findSiblingLayers(feature.properties.name).forEach(function(sib) {
-          sib.setStyle(highlightStyle());
-          sib.bringToFront();
+          sib.setStyle(siblingHighlightStyle());
         });
         var clickRace = getPrecinctRace(feature.properties);
         if (clickRace) {
