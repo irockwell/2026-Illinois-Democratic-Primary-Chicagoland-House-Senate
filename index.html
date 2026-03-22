@@ -1053,7 +1053,7 @@ Promise.all([
 
   window.updateMuniBoundaries = function() {
     var enabled = document.getElementById('muni-toggle').checked;
-    var show = enabled && map.getZoom() >= 12;
+    var showLabels = enabled && map.getZoom() >= 12;
     // Build union of munis across all active races
     var activeMunis = new Set();
     activeRaces.forEach(function(race) {
@@ -1068,18 +1068,18 @@ Promise.all([
         layer.setStyle({ weight: 3, color: '#ff0000', opacity: 0.9, dashArray: '6,4' });
       } else {
         layer.setStyle({
-          weight: (enabled && show) ? 1.5 : 0,
+          weight: enabled ? 1.5 : 0,
           color: '#1a1a2e',
-          opacity: (enabled && show) ? 0.5 : 0
+          opacity: enabled ? 0.5 : 0
         });
       }
     });
-    // Show/hide municipality label markers — show all when toggle is on
+    // Show/hide municipality label markers — only at zoom 12+
     Object.keys(muniLabelMarkers).forEach(function(name) {
       var el = muniLabelMarkers[name].getElement();
-      if (el) el.style.display = show ? '' : 'none';
+      if (el) el.style.display = showLabels ? '' : 'none';
     });
-    chicagoLabel.getElement().style.display = show ? '' : 'none';
+    chicagoLabel.getElement().style.display = showLabels ? '' : 'none';
   }
   map.on('zoomend', function() {
     window.updateMuniBoundaries();
