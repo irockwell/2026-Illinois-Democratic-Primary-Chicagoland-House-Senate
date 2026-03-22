@@ -181,6 +181,9 @@
       <input type="checkbox" id="community-toggle" style="margin-right:3px;vertical-align:middle" />Community Areas
     </label>
     <label style="font-size:11px;cursor:pointer;white-space:nowrap;user-select:none">
+      <input type="checkbox" id="ward-toggle" style="margin-right:3px;vertical-align:middle" />Wards
+    </label>
+    <label style="font-size:11px;cursor:pointer;white-space:nowrap;user-select:none">
       <input type="checkbox" id="chicago-outline-toggle" checked style="margin-right:3px;vertical-align:middle" />Chicago Outline
     </label>
   </div>
@@ -247,7 +250,7 @@ const COLORS = [
 ];
 const NO_DATA_COLOR = "#e5e7eb";
 
-var map, geoLayer, electionData, muniLayerRef, communityLayerRef;
+var map, geoLayer, electionData, muniLayerRef, communityLayerRef, wardLayerRef;
 var activeRaces = new Set(["race6"]);
 var activeCounties = new Set(["cook", "chicago", "dupage", "lake", "mchenry", "will", "kane"]);
 var communityAreasPerRace = {};
@@ -615,7 +618,8 @@ Promise.all([
   fetch('will_municipalities.json').then(function(r) { if (!r.ok) throw new Error('will_municipalities: ' + r.status); return r.json(); }),
   fetch('kane_election_data.json').then(function(r) { if (!r.ok) throw new Error('kane_election_data: ' + r.status); return r.json(); }),
   fetch('kane_municipalities.json').then(function(r) { if (!r.ok) throw new Error('kane_municipalities: ' + r.status); return r.json(); }),
-  fetch('congressional_districts.json').then(function(r) { if (!r.ok) throw new Error('congressional_districts: ' + r.status); return r.json(); })
+  fetch('congressional_districts.json').then(function(r) { if (!r.ok) throw new Error('congressional_districts: ' + r.status); return r.json(); }),
+  fetch('chicago_wards.json').then(function(r) { if (!r.ok) throw new Error('chicago_wards: ' + r.status); return r.json(); })
 ]).then(function(results) {
   var eData = results[0], muniData = results[1], chicagoData = results[2];
   var dupageData = results[3], dupageMuniData = results[4], communityData = results[5];
@@ -625,6 +629,7 @@ Promise.all([
   var willData = results[11], willMuniData = results[12];
   var kaneData = results[13], kaneMuniData = results[14];
   var congressionalDistricts = results[15];
+  var wardData = results[16];
 
   // Compute winner_pct and total for Chicago features (same as Suburban Cook format)
   chicagoData.features.forEach(function(f) {
@@ -766,6 +771,19 @@ Promise.all([
     }
   });
 
+  // Ward boundaries
+  wardLayerRef = L.geoJSON(wardData, {
+    style: { fillColor: 'transparent', fillOpacity: 0, weight: 0.8, color: '#2e5090', opacity: 0.4 },
+    interactive: false, pane: 'muniPane',
+    onEachFeature: function(feature, layer) {
+      if (feature.properties.name) {
+        layer.bindTooltip(feature.properties.name, {
+          permanent: true, direction: 'center', className: 'muni-label'
+        });
+      }
+    }
+  });
+
   // Build communityAreasPerRace: for each race, which community areas have Chicago precincts
   (function() {
     // Point-in-polygon ray casting
@@ -839,6 +857,52 @@ Promise.all([
       communityLayerRef.eachLayer(function(layer) {
         var caName = layer.feature.properties.name;
         var inDistrict = enabled && activeCAs.has(caName);
+        layer.setStyle({
+          weight: inDistrict ? 0.8 : 0,
+          opacity: inDistrict ? 0.4 : 0
+        });
+        var tip = layer.getTooltip();
+        if (tip) {
+          var el = tip.getElement();
+          if (el) el.style.display = (show && inDistrict) ? '' : 'none';
+        }
+      });
+    }
+  };
+
+  // Build wardsPerRace: for each ward, which races have precincts in it
+  var wardsPerRace = {};
+  electionData.features.forEach(function(f) {
+    var p = f.properties;
+    if (p.jurisdiction !== 'chicago') return;
+    // Extract ward from name "CHICAGO W-P" or "CHICAGO W-P_CDx"
+    var m = p.name.match(/^CHICAGO (\d+)-/);
+    if (!m) return;
+    var wardNum = parseInt(m[1]);
+    var wardName = 'Ward ' + wardNum;
+    if (!wardsPerRace[wardName]) wardsPerRace[wardName] = new Set();
+    allRaces.forEach(function(r) { if (p['has_' + r]) wardsPerRace[wardName].add(r); });
+  });
+
+  window.updateWards = function() {
+    var enabled = document.getElementById('ward-toggle').checked;
+    var show = enabled && map.getZoom() >= 12;
+    // Build set of wards in active race
+    var activeWards = new Set();
+    activeRaces.forEach(function(race) {
+      for (var w in wardsPerRace) {
+        if (wardsPerRace[w].has(race)) activeWards.add(w);
+      }
+    });
+    if (enabled && !map.hasLayer(wardLayerRef)) {
+      wardLayerRef.addTo(map);
+    } else if (!enabled && map.hasLayer(wardLayerRef)) {
+      wardLayerRef.removeFrom(map);
+    }
+    if (wardLayerRef) {
+      wardLayerRef.eachLayer(function(layer) {
+        var wardName = layer.feature.properties.name;
+        var inDistrict = enabled && activeWards.has(wardName);
         layer.setStyle({
           weight: inDistrict ? 0.8 : 0,
           opacity: inDistrict ? 0.4 : 0
@@ -1079,11 +1143,13 @@ Promise.all([
   map.on('zoomend', function() {
     window.updateMuniBoundaries();
     window.updateCommunityAreas();
+    window.updateWards();
     window.updateCountyLabels();
     if (geoLayer) { geoLayer.setStyle(getStyle); updatePointerEvents(); }
   });
   window.updateMuniBoundaries();
   window.updateCommunityAreas();
+  window.updateWards();
   window.updateChicagoBorder();
   window.updateCDBorder();
 }).catch(function(err) { console.error('Load error:', err); alert('Failed to load data: ' + err.message); });
@@ -1288,7 +1354,20 @@ document.getElementById('muni-toggle').addEventListener('change', function() {
 });
 
 document.getElementById('community-toggle').addEventListener('change', function() {
+  if (this.checked) {
+    document.getElementById('ward-toggle').checked = false;
+    if (typeof updateWards === 'function') updateWards();
+  }
   if (typeof updateCommunityAreas === 'function') updateCommunityAreas();
+  if (typeof updateChicagoBorder === 'function') updateChicagoBorder();
+});
+
+document.getElementById('ward-toggle').addEventListener('change', function() {
+  if (this.checked) {
+    document.getElementById('community-toggle').checked = false;
+    if (typeof updateCommunityAreas === 'function') updateCommunityAreas();
+  }
+  if (typeof updateWards === 'function') updateWards();
   if (typeof updateChicagoBorder === 'function') updateChicagoBorder();
 });
 
@@ -1367,6 +1446,7 @@ document.querySelectorAll('.race-btn').forEach(btn => {
     }
     if (muniLayerRef) updateMuniBoundaries();
     if (typeof updateCommunityAreas === 'function') updateCommunityAreas();
+    if (typeof updateWards === 'function') updateWards();
     if (typeof updateCDBorder === 'function') updateCDBorder();
     // Deselect precinct
     if (selectedPrecinctLayer) { geoLayer.resetStyle(selectedPrecinctLayer); }
