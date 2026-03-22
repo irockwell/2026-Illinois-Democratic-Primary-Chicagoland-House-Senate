@@ -1017,10 +1017,7 @@ Promise.all([
     var cookLayer = countyBorderLayers['Cook County'];
     if (cookLayer) {
       var cookOn = activeCounties.has('cook') || activeCounties.has('chicago');
-      var chiOutlineOn = document.getElementById('chicago-outline-toggle').checked;
-      var cookWeight = cookOn ? (chiOutlineOn ? 1.5 : 3) : (chiOutlineOn ? 1 : 2);
-      var cookOpacity = cookOn ? (chiOutlineOn ? 0.4 : 0.7) : (chiOutlineOn ? 0.3 : 0.5);
-      cookLayer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: cookWeight, color: '#1a1a2e', opacity: cookOpacity, dashArray: '8,4' });
+      cookLayer.setStyle(cookOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 2, color: '#1a1a2e', opacity: 0.5, dashArray: '8,4' });
     }
     var dupageLayer = countyBorderLayers['DuPage County'];
     if (dupageLayer) {
