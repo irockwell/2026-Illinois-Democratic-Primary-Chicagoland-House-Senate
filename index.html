@@ -63,12 +63,12 @@
   .info-bar { height: 8px; border-radius: 4px; min-width: 2px; }
   .info-panel .meta { font-size: 11px; color: #888; margin-top: 10px; border-top: 1px solid #eee; padding-top: 8px; }
 
-  #muni-search {
+  #muni-search, #ward-search {
     width: 100%; padding: 5px 8px; border: 1.5px solid #ccc; border-radius: 6px;
     font-size: 11px; outline: none; box-sizing: border-box;
   }
-  #muni-search:focus { border-color: #1a1a2e; }
-  #muni-dropdown {
+  #muni-search:focus, #ward-search:focus { border-color: #1a1a2e; }
+  #muni-dropdown, #ward-dropdown {
     position: absolute; left: 0; right: 0; top: 100%; background: white;
     border-radius: 0 0 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     max-height: 200px; overflow-y: auto; display: none; z-index: 1001;
@@ -191,9 +191,14 @@
     <input type="text" id="muni-search" placeholder="Search municipality..." autocomplete="off" />
     <div id="muni-dropdown"></div>
   </div>
+  <div id="ward-search-container" style="padding-top:6px;position:relative;display:none">
+    <input type="text" id="ward-search" placeholder="Search ward (1–50)..." autocomplete="off" />
+    <div id="ward-dropdown"></div>
+  </div>
 </div>
 
 <div class="muni-panel" id="muni-panel"></div>
+<div class="muni-panel" id="ward-panel"></div>
 
 <div class="legend" id="legend"></div>
 <div class="info-panel" id="info-panel"></div>
@@ -250,7 +255,7 @@ const COLORS = [
 ];
 const NO_DATA_COLOR = "#e5e7eb";
 
-var map, geoLayer, electionData, muniLayerRef, communityLayerRef, wardLayerRef;
+var map, geoLayer, electionData, muniLayerRef, communityLayerRef, wardLayerRef, wardsPerRace = {};
 var activeRaces = new Set(["race6"]);
 var activeCounties = new Set(["cook", "chicago", "dupage", "lake", "mchenry", "will", "kane"]);
 var communityAreasPerRace = {};
@@ -475,8 +480,10 @@ function buildInfoPanel(props) {
     '<table>' + rows + '</table>' + metaHtml;
   panel.style.display = "block";
   var muniPanel = document.getElementById("muni-panel");
-  if (muniPanel.style.display === 'block') {
-    panel.style.top = (muniPanel.offsetTop + muniPanel.offsetHeight + 8) + 'px';
+  var wardPanel = document.getElementById("ward-panel");
+  var topPanel = muniPanel.style.display === 'block' ? muniPanel : (wardPanel.style.display === 'block' ? wardPanel : null);
+  if (topPanel) {
+    panel.style.top = (topPanel.offsetTop + topPanel.offsetHeight + 8) + 'px';
   } else {
     panel.style.top = '12px';
   }
@@ -871,7 +878,7 @@ Promise.all([
   };
 
   // Build wardsPerRace: for each ward, which races have precincts in it
-  var wardsPerRace = {};
+  wardsPerRace = {};
   electionData.features.forEach(function(f) {
     var p = f.properties;
     if (p.jurisdiction !== 'chicago') return;
@@ -1346,7 +1353,171 @@ searchInput.addEventListener('keydown', function(e) {
 });
 
 document.addEventListener('click', function(e) {
-  if (!e.target.closest('.controls')) dropdown.style.display = 'none';
+  if (!e.target.closest('.controls')) {
+    dropdown.style.display = 'none';
+    wardDropdown.style.display = 'none';
+  }
+});
+
+// Ward search and aggregation
+var allWards = [];
+for (var i = 1; i <= 50; i++) allWards.push('Ward ' + i);
+var selectedWard = null;
+
+var wardSearchInput = document.getElementById('ward-search');
+var wardDropdown = document.getElementById('ward-dropdown');
+var wardSearchContainer = document.getElementById('ward-search-container');
+
+function getWardTotals(wardNum, race) {
+  var cfg = RACE_CONFIG[race];
+  var totals = {};
+  cfg.candidates.forEach(function(c) { totals[c] = 0; });
+  var registered = 0, ballots = 0, precinctCount = 0;
+  electionData.features.forEach(function(f) {
+    var p = f.properties;
+    if (p.jurisdiction !== 'chicago' || !p[cfg.flag]) return;
+    var m = p.name.match(/^CHICAGO (\d+)-/);
+    if (!m || parseInt(m[1]) !== wardNum) return;
+    precinctCount++;
+    registered += p[cfg.prefix + "registered"] || 0;
+    ballots += p[cfg.prefix + "ballots"] || 0;
+    cfg.candidates.forEach(function(c) {
+      totals[c] += p[cfg.prefix + c] || 0;
+    });
+  });
+  var total = 0;
+  cfg.candidates.forEach(function(c) { total += totals[c]; });
+  return { totals: totals, total: total, registered: registered, ballots: ballots, precinctCount: precinctCount };
+}
+
+function getWardRace(wardName) {
+  for (var race of activeRaces) {
+    if (wardsPerRace && wardsPerRace[wardName] && wardsPerRace[wardName].has(race)) return race;
+  }
+  return null;
+}
+
+function showWardPanel(wardName, pinned, race) {
+  if (!race) race = getWardRace(wardName);
+  if (!race) { document.getElementById("ward-panel").style.display = "none"; return; }
+  var wardNum = parseInt(wardName.replace('Ward ', ''));
+  var cfg = RACE_CONFIG[race];
+  var panel = document.getElementById("ward-panel");
+  var data = getWardTotals(wardNum, race);
+  if (data.precinctCount === 0) { panel.style.display = "none"; return; }
+  var maxCandidates = 4;
+
+  var cVotes = cfg.candidates
+    .map(function(c) { return { name: c, votes: data.totals[c] }; })
+    .sort(function(a, b) { return b.votes - a.votes; });
+  var maxV = cVotes[0].votes;
+  var winner = cVotes[0].name;
+  var winnerPct = data.total > 0 ? (cVotes[0].votes / data.total * 100).toFixed(1) : 0;
+  var winnerColor = getCandidateColor(winner, race);
+
+  var rows = "";
+  var shown = 0;
+  cVotes.forEach(function(cv) {
+    if (cv.votes === 0 || shown >= maxCandidates) return;
+    var pct = data.total > 0 ? (cv.votes / data.total * 100).toFixed(1) : 0;
+    var barW = maxV > 0 ? (cv.votes / maxV * 100) : 0;
+    rows += '<tr><td>' + cv.name + '</td><td class="bar-cell"><div class="info-bar" style="width:' +
+      barW + '%;background:' + getCandidateColor(cv.name, race) + '"></div></td><td>' +
+      cv.votes.toLocaleString() + ' (' + pct + '%)</td></tr>';
+    shown++;
+  });
+
+  var turnout = data.registered > 0 ? (data.ballots / data.registered * 100).toFixed(1) : "—";
+
+  panel.innerHTML = '<button class="close-btn" onclick="document.getElementById(\'ward-panel\').style.display=\'none\';document.getElementById(\'info-panel\').style.display=\'none\';selectedWard=null;document.getElementById(\'ward-search\').value=\'\';clearWardHighlight()">&times;</button>' +
+    '<h3>' + wardName + '</h3>' +
+    '<div class="muni-precincts">' + data.precinctCount + ' precincts</div>' +
+    '<div class="winner-tag" style="background:' + winnerColor + '">' + winner + ' — ' + winnerPct + '%</div>' +
+    '<table>' + rows + '</table>' +
+    (data.registered > 0 && data.registered >= data.ballots
+      ? '<div class="meta">Registered: ' + data.registered.toLocaleString() +
+        ' &nbsp;|&nbsp; Ballots: ' + data.ballots.toLocaleString() +
+        ' &nbsp;|&nbsp; Turnout: ' + turnout + '%</div>'
+      : '<div class="meta">Total votes: ' + data.total.toLocaleString() + '</div>');
+  panel.style.display = "block";
+}
+
+var highlightedWardLayers = [];
+function highlightWard(wardName) {
+  clearWardHighlight();
+  if (wardLayerRef) {
+    wardLayerRef.eachLayer(function(layer) {
+      if (layer.feature.properties.name === wardName) {
+        layer.setStyle({ weight: 3, color: '#ff0000', opacity: 0.9, dashArray: '6,4' });
+        layer.bringToFront();
+        highlightedWardLayers.push(layer);
+      }
+    });
+  }
+}
+function clearWardHighlight() {
+  highlightedWardLayers.forEach(function(layer) {
+    layer.setStyle({ weight: 1.2, color: '#8b4513', opacity: 0.4, dashArray: '' });
+  });
+  highlightedWardLayers = [];
+}
+
+function zoomToWard(wardName) {
+  if (wardLayerRef) {
+    var bounds = L.latLngBounds([]);
+    wardLayerRef.eachLayer(function(layer) {
+      if (layer.feature.properties.name === wardName) {
+        bounds.extend(layer.getBounds());
+      }
+    });
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+    }
+  }
+}
+
+function selectWard(name) {
+  wardSearchInput.value = name;
+  wardDropdown.style.display = 'none';
+  selectedWard = name;
+  showWardPanel(name, true);
+  zoomToWard(name);
+  highlightWard(name);
+}
+
+wardSearchInput.addEventListener('input', function() {
+  var q = this.value.toLowerCase().trim();
+  if (q.length === 0) { wardDropdown.style.display = 'none'; return; }
+  // Filter wards in active race
+  var activeWardList = allWards.filter(function(w) { return wardsPerRace && wardsPerRace[w] && getWardRace(w); });
+  var matches = activeWardList.filter(function(w) { return w.toLowerCase().indexOf(q) >= 0; });
+  // Sort: numeric order
+  matches.sort(function(a, b) {
+    return parseInt(a.replace('Ward ', '')) - parseInt(b.replace('Ward ', ''));
+  });
+  if (matches.length === 0) { wardDropdown.style.display = 'none'; return; }
+  wardDropdown.innerHTML = matches.slice(0, 10).map(function(w) {
+    return '<div class="muni-option">' + w + '</div>';
+  }).join('');
+  wardDropdown.style.display = 'block';
+  wardDropdown.querySelectorAll('.muni-option').forEach(function(opt) {
+    opt.addEventListener('click', function() { selectWard(this.textContent); });
+  });
+});
+
+wardSearchInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    var q = this.value.trim();
+    // Try parsing as just a number
+    var num = parseInt(q.replace(/[^0-9]/g, ''));
+    var match = null;
+    if (num >= 1 && num <= 50) match = 'Ward ' + num;
+    if (!match) {
+      var activeWardList = allWards.filter(function(w) { return getWardRace(w); });
+      match = activeWardList.find(function(w) { return w.toLowerCase().indexOf(q.toLowerCase()) >= 0; });
+    }
+    if (match && getWardRace(match)) selectWard(match);
+  }
 });
 
 document.getElementById('muni-toggle').addEventListener('change', function() {
@@ -1357,6 +1528,12 @@ document.getElementById('community-toggle').addEventListener('change', function(
   if (this.checked) {
     document.getElementById('ward-toggle').checked = false;
     if (typeof updateWards === 'function') updateWards();
+    // Hide ward search, clear ward selection
+    wardSearchContainer.style.display = 'none';
+    wardSearchInput.value = '';
+    selectedWard = null;
+    document.getElementById('ward-panel').style.display = 'none';
+    clearWardHighlight();
   }
   if (typeof updateCommunityAreas === 'function') updateCommunityAreas();
   if (typeof updateChicagoBorder === 'function') updateChicagoBorder();
@@ -1366,6 +1543,13 @@ document.getElementById('ward-toggle').addEventListener('change', function() {
   if (this.checked) {
     document.getElementById('community-toggle').checked = false;
     if (typeof updateCommunityAreas === 'function') updateCommunityAreas();
+    wardSearchContainer.style.display = 'block';
+  } else {
+    wardSearchContainer.style.display = 'none';
+    wardSearchInput.value = '';
+    selectedWard = null;
+    document.getElementById('ward-panel').style.display = 'none';
+    clearWardHighlight();
   }
   if (typeof updateWards === 'function') updateWards();
   if (typeof updateChicagoBorder === 'function') updateChicagoBorder();
@@ -1442,6 +1626,17 @@ document.querySelectorAll('.race-btn').forEach(btn => {
         document.getElementById('muni-panel').style.display = 'none';
       } else {
         showMuniPanel(selectedMuni, true, muniRace);
+      }
+    }
+    if (selectedWard) {
+      var wardRace = getWardRace(selectedWard);
+      if (!wardRace) {
+        selectedWard = null;
+        wardSearchInput.value = '';
+        document.getElementById('ward-panel').style.display = 'none';
+        clearWardHighlight();
+      } else {
+        showWardPanel(selectedWard, true, wardRace);
       }
     }
     if (muniLayerRef) updateMuniBoundaries();
