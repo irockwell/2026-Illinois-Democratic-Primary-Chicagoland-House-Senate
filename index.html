@@ -767,7 +767,7 @@ Promise.all([
 
   // Community area boundaries
   communityLayerRef = L.geoJSON(communityData, {
-    style: { fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#8b4513', opacity: 0.4 },
+    style: { fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#8b4513', opacity: 0.6 },
     interactive: false, pane: 'muniPane',
     onEachFeature: function(feature, layer) {
       if (feature.properties.name) {
@@ -780,7 +780,7 @@ Promise.all([
 
   // Ward boundaries
   wardLayerRef = L.geoJSON(wardData, {
-    style: { fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#8b4513', opacity: 0.4 },
+    style: { fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#8b4513', opacity: 0.6 },
     interactive: false, pane: 'muniPane',
     onEachFeature: function(feature, layer) {
       if (feature.properties.name) {
@@ -866,7 +866,7 @@ Promise.all([
         var inDistrict = enabled && activeCAs.has(caName);
         layer.setStyle({
           weight: inDistrict ? 1.5 : 0,
-          opacity: inDistrict ? 0.4 : 0
+          opacity: inDistrict ? 0.6 : 0
         });
         var tip = layer.getTooltip();
         if (tip) {
@@ -912,7 +912,7 @@ Promise.all([
         var inDistrict = enabled && activeWards.has(wardName);
         layer.setStyle({
           weight: inDistrict ? 1.5 : 0,
-          opacity: inDistrict ? 0.4 : 0
+          opacity: inDistrict ? 0.6 : 0
         });
         var tip = layer.getTooltip();
         if (tip) {
@@ -1457,7 +1457,7 @@ function highlightWard(wardName) {
 }
 function clearWardHighlight() {
   highlightedWardLayers.forEach(function(layer) {
-    layer.setStyle({ weight: 1.5, color: '#8b4513', opacity: 0.4, dashArray: '' });
+    layer.setStyle({ weight: 1.5, color: '#8b4513', opacity: 0.6, dashArray: '' });
   });
   highlightedWardLayers = [];
 }
