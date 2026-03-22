@@ -995,7 +995,7 @@ Promise.all([
       var isHighlighted = highlightedMuniLayers.indexOf(layer) >= 0;
       var inDistrict = enabled && activeMunis.has(muniName);
       if (isHighlighted) {
-        layer.setStyle({ weight: 3, color: '#e08530', opacity: 0.9 });
+        layer.setStyle({ weight: 3, color: '#ff0000', opacity: 0.9 });
       } else {
         layer.setStyle({
           weight: inDistrict ? 1.5 : 0,
@@ -1127,7 +1127,7 @@ function highlightMuni(muniName) {
   if (muniLayerRef) {
     muniLayerRef.eachLayer(function(layer) {
       if (layer.feature.properties.name === muniName) {
-        layer.setStyle({ weight: 3, color: '#e08530', opacity: 0.9 });
+        layer.setStyle({ weight: 3, color: '#ff0000', opacity: 0.9 });
         layer.bringToFront();
         highlightedMuniLayers.push(layer);
       }
