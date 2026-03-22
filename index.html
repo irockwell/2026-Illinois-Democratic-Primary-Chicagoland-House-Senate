@@ -1064,24 +1064,22 @@ Promise.all([
     muniLayerRef.eachLayer(function(layer) {
       var muniName = layer.feature.properties.name;
       var isHighlighted = highlightedMuniLayers.indexOf(layer) >= 0;
-      var inDistrict = enabled && activeMunis.has(muniName);
       if (isHighlighted) {
         layer.setStyle({ weight: 3, color: '#ff0000', opacity: 0.9, dashArray: '6,4' });
       } else {
         layer.setStyle({
-          weight: inDistrict ? 1.5 : 0,
+          weight: (enabled && show) ? 1.5 : 0,
           color: '#1a1a2e',
-          opacity: inDistrict ? 0.5 : 0
+          opacity: (enabled && show) ? 0.5 : 0
         });
       }
     });
-    // Show/hide municipality label markers
+    // Show/hide municipality label markers — show all when toggle is on
     Object.keys(muniLabelMarkers).forEach(function(name) {
       var el = muniLabelMarkers[name].getElement();
-      if (el) el.style.display = (show && activeMunis.has(name)) ? '' : 'none';
+      if (el) el.style.display = show ? '' : 'none';
     });
-    var showChicago = show && activeMunis.has('Chicago');
-    chicagoLabel.getElement().style.display = showChicago ? '' : 'none';
+    chicagoLabel.getElement().style.display = show ? '' : 'none';
   }
   map.on('zoomend', function() {
     window.updateMuniBoundaries();
