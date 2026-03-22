@@ -1059,20 +1059,21 @@ Promise.all([
     muniLayerRef.eachLayer(function(layer) {
       var muniName = layer.feature.properties.name;
       var isHighlighted = highlightedMuniLayers.indexOf(layer) >= 0;
+      var inDistrict = enabled && activeMunis.has(muniName);
       if (isHighlighted) {
         layer.setStyle({ weight: 3, color: '#ff0000', opacity: 0.9, dashArray: '6,4' });
       } else {
         layer.setStyle({
-          weight: enabled ? 1.5 : 0,
+          weight: inDistrict ? 1.5 : 0,
           color: '#1a1a2e',
-          opacity: enabled ? 0.5 : 0
+          opacity: inDistrict ? 0.5 : 0
         });
       }
     });
     // Show/hide municipality label markers — only at zoom 12+
     Object.keys(muniLabelMarkers).forEach(function(name) {
       var el = muniLabelMarkers[name].getElement();
-      if (el) el.style.display = showLabels ? '' : 'none';
+      if (el) el.style.display = (showLabels && activeMunis.has(name)) ? '' : 'none';
     });
   }
   map.on('zoomend', function() {
