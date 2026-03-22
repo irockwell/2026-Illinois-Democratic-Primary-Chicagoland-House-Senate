@@ -312,6 +312,12 @@ function getStyle(feature) {
     if (p.name && p.name.indexOf('_CD') >= 0) {
       return { fillColor: 'transparent', fillOpacity: 0, weight: 0, color: 'transparent', opacity: 0 };
     }
+    // When viewing a CD race, hide precincts outside the district entirely
+    var hasActiveCDRace = false;
+    for (var r of activeRaces) { if (RACE_CONFIG[r].cd) { hasActiveCDRace = true; break; } }
+    if (hasActiveCDRace) {
+      return { fillColor: 'transparent', fillOpacity: 0, weight: 0, color: 'transparent', opacity: 0 };
+    }
     return { fillColor: NO_DATA_COLOR, fillOpacity: 0.25, weight: Math.min(w, 0.4), color: "#ccc", opacity: 0.4 };
   }
   const cfg = RACE_CONFIG[race];
@@ -582,10 +588,6 @@ function onEachFeature(feature, layer) {
 }
 
 
-// Create pane for CD mask (clips precinct colors at CD boundary)
-map.createPane('cdMaskPane');
-map.getPane('cdMaskPane').style.zIndex = 420;
-map.getPane('cdMaskPane').style.pointerEvents = 'none';
 // Create pane for municipality borders above overlays but below tooltips
 map.createPane('muniPane');
 map.getPane('muniPane').style.zIndex = 450;
@@ -881,34 +883,11 @@ Promise.all([
     }
   }).addTo(map);
 
-  // CD mask: inverted polygon that covers everything outside the active CD
-  var cdMaskLayer = null;
-  function buildCDMask(cdGeometry) {
-    // Create a world-covering polygon with the CD as a hole
-    var outer = [[-90, -180], [-90, 180], [90, 180], [90, -180], [-90, -180]];
-    var coords = cdGeometry.coordinates;
-    // Handle Polygon type
-    var holes = coords[0].map(function(c) { return [c[1], c[0]]; });
-    return L.polygon([outer, holes], {
-      fillColor: '#f2f2f2', fillOpacity: 0.85,
-      stroke: false, interactive: false, pane: 'cdMaskPane'
-    });
-  }
-
   window.updateCDBorder = function() {
     var activeCD = null;
     for (var race of activeRaces) {
       var cfg = RACE_CONFIG[race];
       if (cfg.cd) activeCD = cfg.cd;
-    }
-    // Update CD mask
-    if (cdMaskLayer) { map.removeLayer(cdMaskLayer); cdMaskLayer = null; }
-    if (activeCD) {
-      var cdFeature = congressionalDistricts.features.find(function(f) { return f.properties.cd === activeCD; });
-      if (cdFeature) {
-        cdMaskLayer = buildCDMask(cdFeature.geometry);
-        cdMaskLayer.addTo(map);
-      }
     }
     Object.keys(cdBorderLayers).forEach(function(cd) {
       if (cd === activeCD) {
