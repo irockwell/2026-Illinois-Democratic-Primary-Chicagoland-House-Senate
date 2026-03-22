@@ -1012,43 +1012,36 @@ Promise.all([
 
   window.updateChicagoBorder = function() {
     if (!chicagoBorderLayer) return;
+    var zoom = map.getZoom();
+    // Scale weight and dash with zoom so borders don't gap at high zoom
+    var baseWeight = zoom >= 15 ? 5 : zoom >= 13 ? 4 : 3;
+    var inactiveWeight = zoom >= 15 ? 4 : zoom >= 13 ? 3 : 2;
+    var dash = zoom >= 15 ? '14,6' : zoom >= 13 ? '10,5' : '8,4';
+    var chiWeight = zoom >= 15 ? 4 : zoom >= 13 ? 3.5 : 2.5;
+
     var outlineOn = document.getElementById('chicago-outline-toggle').checked;
     if (!outlineOn) {
       chicagoBorderLayer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: 0, opacity: 0 });
     } else {
-      chicagoBorderLayer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: 2.5, color: '#8b4513', opacity: 0.7, dashArray: '8,4' });
+      chicagoBorderLayer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: chiWeight, color: '#8b4513', opacity: 0.7, dashArray: dash });
     }
-    // Hide/show Cook and DuPage borders based on county toggles
-    var cookLayer = countyBorderLayers['Cook County'];
-    if (cookLayer) {
-      var cookOn = activeCounties.has('cook') || activeCounties.has('chicago');
-      cookLayer.setStyle(cookOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 2, color: '#1a1a2e', opacity: 0.5, dashArray: '8,4' });
-    }
-    var dupageLayer = countyBorderLayers['DuPage County'];
-    if (dupageLayer) {
-      var dupageOn = activeCounties.has('dupage');
-      dupageLayer.setStyle(dupageOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 2, color: '#1a1a2e', opacity: 0.5, dashArray: '8,4' });
-    }
-    var lakeLayer = countyBorderLayers['Lake County'];
-    if (lakeLayer) {
-      var lakeOn = activeCounties.has('lake');
-      lakeLayer.setStyle(lakeOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 2, color: '#1a1a2e', opacity: 0.5, dashArray: '8,4' });
-    }
-    var mchenryLayer = countyBorderLayers['McHenry County'];
-    if (mchenryLayer) {
-      var mchenryOn = activeCounties.has('mchenry');
-      mchenryLayer.setStyle(mchenryOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 2, color: '#1a1a2e', opacity: 0.5, dashArray: '8,4' });
-    }
-    var willLayer = countyBorderLayers['Will County'];
-    if (willLayer) {
-      var willOn = activeCounties.has('will');
-      willLayer.setStyle(willOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 2, color: '#1a1a2e', opacity: 0.5, dashArray: '8,4' });
-    }
-    var kaneLayer = countyBorderLayers['Kane County'];
-    if (kaneLayer) {
-      var kaneOn = activeCounties.has('kane');
-      kaneLayer.setStyle(kaneOn ? { fillColor: 'transparent', fillOpacity: 0, weight: 3, color: '#1a1a2e', opacity: 0.7, dashArray: '8,4' } : { fillColor: 'transparent', fillOpacity: 0, weight: 2, color: '#1a1a2e', opacity: 0.5, dashArray: '8,4' });
-    }
+    // Update county borders
+    var counties = [
+      { name: 'Cook County', on: activeCounties.has('cook') || activeCounties.has('chicago') },
+      { name: 'DuPage County', on: activeCounties.has('dupage') },
+      { name: 'Lake County', on: activeCounties.has('lake') },
+      { name: 'McHenry County', on: activeCounties.has('mchenry') },
+      { name: 'Will County', on: activeCounties.has('will') },
+      { name: 'Kane County', on: activeCounties.has('kane') }
+    ];
+    counties.forEach(function(c) {
+      var layer = countyBorderLayers[c.name];
+      if (layer) {
+        var w = c.on ? baseWeight : inactiveWeight;
+        var op = c.on ? 0.7 : 0.5;
+        layer.setStyle({ fillColor: 'transparent', fillOpacity: 0, weight: w, color: '#1a1a2e', opacity: op, dashArray: dash });
+      }
+    });
   };
 
   window.updateMuniBoundaries = function() {
@@ -1085,6 +1078,7 @@ Promise.all([
     window.updateMuniBoundaries();
     window.updateCommunityAreas();
     window.updateCountyLabels();
+    window.updateChicagoBorder();
     if (geoLayer) { geoLayer.setStyle(getStyle); updatePointerEvents(); }
   });
   window.updateMuniBoundaries();
