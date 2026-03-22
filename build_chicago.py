@@ -8,7 +8,7 @@ import xlrd
 # ── Configuration ──────────────────────────────────────────────────────────────
 GEOJSON_URL = "https://data.cityofchicago.org/resource/i8fv-xe4b.geojson?$limit=5000"
 OUTPUT_FILE = "chicago_election_data.json"
-TURNOUT_FILE = "download-10.xls"
+TURNOUT_FILE = "download-28.xls"
 
 # Race definitions: race_key -> (filename, candidate_list)
 # Candidate lists match Suburban Cook ordering for consistent coloring
