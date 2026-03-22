@@ -1245,6 +1245,11 @@ searchInput.addEventListener('input', function() {
   var q = this.value.toLowerCase().trim();
   if (q.length === 0) { dropdown.style.display = 'none'; return; }
   var matches = allMunis.filter(function(m) { return m.toLowerCase().indexOf(q) >= 0; });
+  matches.sort(function(a, b) {
+    var aStarts = a.toLowerCase().indexOf(q) === 0 ? 0 : 1;
+    var bStarts = b.toLowerCase().indexOf(q) === 0 ? 0 : 1;
+    return aStarts - bStarts || a.localeCompare(b);
+  });
   if (matches.length === 0) { dropdown.style.display = 'none'; return; }
   dropdown.innerHTML = matches.slice(0, 10).map(function(m) {
     return '<div class="muni-option">' + m + '</div>';
