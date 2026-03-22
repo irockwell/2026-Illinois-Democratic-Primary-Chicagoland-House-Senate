@@ -503,6 +503,20 @@ function findParentLayer(name) {
   return parent;
 }
 
+// Find all sibling split CD layers for the same base precinct
+function findSiblingLayers(name) {
+  var siblings = [];
+  if (!name) return siblings;
+  var baseName = name.replace(/_CD\d+$/, '');
+  geoLayer.eachLayer(function(l) {
+    var n = l.feature.properties.name;
+    if (n !== name && n.indexOf(baseName + '_CD') === 0) {
+      siblings.push(l);
+    }
+  });
+  return siblings;
+}
+
 function onEachFeature(feature, layer) {
   layer.on({
     mouseover: function(e) {
@@ -529,6 +543,13 @@ function onEachFeature(feature, layer) {
       if (selectedPrecinctLayer !== e.target) {
         e.target.setStyle(highlightStyle());
         e.target.bringToFront();
+        // Also highlight sibling split CD layers
+        findSiblingLayers(feature.properties.name).forEach(function(sib) {
+          if (selectedPrecinctLayer !== sib) {
+            sib.setStyle(highlightStyle());
+            sib.bringToFront();
+          }
+        });
       }
       if (!selectedPrecinct) {
         if (race) {
@@ -551,6 +572,12 @@ function onEachFeature(feature, layer) {
       if (selectedPrecinctLayer !== e.target) {
         geoLayer.resetStyle(e.target);
       }
+      // Also reset sibling split CD layers
+      findSiblingLayers(feature.properties.name).forEach(function(sib) {
+        if (selectedPrecinctLayer !== sib) {
+          geoLayer.resetStyle(sib);
+        }
+      });
       if (!selectedPrecinct) {
         document.getElementById("info-panel").style.display = "none";
         if (!selectedMuni) {
@@ -572,6 +599,9 @@ function onEachFeature(feature, layer) {
       if (selectedPrecinctLayer === e.target) {
         // Toggle off — clicking same precinct deselects
         geoLayer.resetStyle(e.target);
+        findSiblingLayers(feature.properties.name).forEach(function(sib) {
+          geoLayer.resetStyle(sib);
+        });
         selectedPrecinct = null;
         selectedPrecinctLayer = null;
         document.getElementById("info-panel").style.display = "none";
@@ -580,11 +610,24 @@ function onEachFeature(feature, layer) {
         }
       } else {
         // Select new precinct
-        if (selectedPrecinctLayer) geoLayer.resetStyle(selectedPrecinctLayer);
+        if (selectedPrecinctLayer) {
+          geoLayer.resetStyle(selectedPrecinctLayer);
+          // Reset siblings of previously selected
+          if (selectedPrecinct) {
+            findSiblingLayers(selectedPrecinct.name).forEach(function(sib) {
+              geoLayer.resetStyle(sib);
+            });
+          }
+        }
         selectedPrecinct = feature.properties;
         selectedPrecinctLayer = e.target;
         e.target.setStyle(highlightStyle());
         e.target.bringToFront();
+        // Also highlight sibling split CD layers
+        findSiblingLayers(feature.properties.name).forEach(function(sib) {
+          sib.setStyle(highlightStyle());
+          sib.bringToFront();
+        });
         var clickRace = getPrecinctRace(feature.properties);
         if (clickRace) {
           var muni = feature.properties.municipality;
