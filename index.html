@@ -760,7 +760,7 @@ Promise.all([
 
   // Community area boundaries
   communityLayerRef = L.geoJSON(communityData, {
-    style: { fillColor: 'transparent', fillOpacity: 0, weight: 0.8, color: '#8b4513', opacity: 0.4 },
+    style: { fillColor: 'transparent', fillOpacity: 0, weight: 1.2, color: '#8b4513', opacity: 0.4 },
     interactive: false, pane: 'muniPane',
     onEachFeature: function(feature, layer) {
       if (feature.properties.name) {
@@ -773,7 +773,7 @@ Promise.all([
 
   // Ward boundaries
   wardLayerRef = L.geoJSON(wardData, {
-    style: { fillColor: 'transparent', fillOpacity: 0, weight: 0.8, color: '#8b4513', opacity: 0.4 },
+    style: { fillColor: 'transparent', fillOpacity: 0, weight: 1.2, color: '#8b4513', opacity: 0.4 },
     interactive: false, pane: 'muniPane',
     onEachFeature: function(feature, layer) {
       if (feature.properties.name) {
@@ -858,7 +858,7 @@ Promise.all([
         var caName = layer.feature.properties.name;
         var inDistrict = enabled && activeCAs.has(caName);
         layer.setStyle({
-          weight: inDistrict ? 0.8 : 0,
+          weight: inDistrict ? 1.2 : 0,
           opacity: inDistrict ? 0.4 : 0
         });
         var tip = layer.getTooltip();
@@ -904,7 +904,7 @@ Promise.all([
         var wardName = layer.feature.properties.name;
         var inDistrict = enabled && activeWards.has(wardName);
         layer.setStyle({
-          weight: inDistrict ? 0.8 : 0,
+          weight: inDistrict ? 1.2 : 0,
           opacity: inDistrict ? 0.4 : 0
         });
         var tip = layer.getTooltip();
