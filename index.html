@@ -883,12 +883,75 @@ Promise.all([
     }
   }).addTo(map);
 
+  // Clip precinct layer to active CD boundary using SVG clipPath
+  var cdClipId = 'cd-clip-path';
+  var activeClipCD = null;
+
+  function updateCDClip() {
+    var overlayPane = map.getPane('overlayPane');
+    var svg = overlayPane ? overlayPane.querySelector('svg') : null;
+    if (!svg) return;
+
+    // Remove existing clipPath
+    var existing = svg.querySelector('#' + cdClipId);
+    if (existing) existing.remove();
+
+    var activeCD = null;
+    for (var race of activeRaces) {
+      if (RACE_CONFIG[race].cd) activeCD = RACE_CONFIG[race].cd;
+    }
+    activeClipCD = activeCD;
+
+    if (!activeCD) {
+      // Remove clip from the SVG root g
+      var g = svg.querySelector('g');
+      if (g) g.removeAttribute('clip-path');
+      return;
+    }
+
+    var cdFeature = congressionalDistricts.features.find(function(f) { return f.properties.cd === activeCD; });
+    if (!cdFeature) return;
+
+    var coords = cdFeature.geometry.coordinates[0];
+    // Convert geo coords to SVG layer points
+    var points = coords.map(function(c) {
+      var pt = map.latLngToLayerPoint([c[1], c[0]]);
+      return pt.x + ',' + pt.y;
+    }).join(' ');
+
+    // Create SVG clipPath element
+    var ns = 'http://www.w3.org/2000/svg';
+    var clipPath = document.createElementNS(ns, 'clipPath');
+    clipPath.setAttribute('id', cdClipId);
+    var polygon = document.createElementNS(ns, 'polygon');
+    polygon.setAttribute('points', points);
+    clipPath.appendChild(polygon);
+
+    // Add defs if needed
+    var defs = svg.querySelector('defs');
+    if (!defs) {
+      defs = document.createElementNS(ns, 'defs');
+      svg.insertBefore(defs, svg.firstChild);
+    }
+    defs.appendChild(clipPath);
+
+    // Apply clip to the SVG root g
+    var g = svg.querySelector('g');
+    if (g) g.setAttribute('clip-path', 'url(#' + cdClipId + ')');
+  }
+
+  // Update clip on zoom/pan since SVG coordinates change
+  map.on('moveend zoomend', function() {
+    if (activeClipCD) updateCDClip();
+  });
+
   window.updateCDBorder = function() {
     var activeCD = null;
     for (var race of activeRaces) {
       var cfg = RACE_CONFIG[race];
       if (cfg.cd) activeCD = cfg.cd;
     }
+    updateCDClip();
     Object.keys(cdBorderLayers).forEach(function(cd) {
       if (cd === activeCD) {
         cdBorderLayers[cd].setStyle({
