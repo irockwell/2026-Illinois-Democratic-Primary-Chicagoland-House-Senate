@@ -741,9 +741,10 @@ Promise.all([
     interactive: false, pane: 'muniPane'
   }).addTo(map);
 
-  // Add a single label marker per municipality at combined centroid
+  // Add a single label marker per municipality at combined centroid (skip Chicago)
   var muniLabelMarkers = {};
   Object.keys(muniCentroids).forEach(function(name) {
+    if (name === 'Chicago') return;
     var latlng = muniCentroids[name];
     var marker = L.marker(latlng, {
       icon: L.divIcon({ className: 'muni-label', html: name, iconSize: null }),
@@ -751,12 +752,6 @@ Promise.all([
     }).addTo(map);
     muniLabelMarkers[name] = marker;
   });
-
-  // Add Chicago label
-  var chicagoLabel = L.marker([41.8381, -87.6298], {
-    icon: L.divIcon({ className: 'muni-label', html: 'Chicago', iconSize: null }),
-    interactive: false, pane: 'muniPane'
-  }).addTo(map);
 
   // Community area boundaries
   communityLayerRef = L.geoJSON(communityData, {
@@ -1079,7 +1074,6 @@ Promise.all([
       var el = muniLabelMarkers[name].getElement();
       if (el) el.style.display = showLabels ? '' : 'none';
     });
-    chicagoLabel.getElement().style.display = showLabels ? '' : 'none';
   }
   map.on('zoomend', function() {
     window.updateMuniBoundaries();
