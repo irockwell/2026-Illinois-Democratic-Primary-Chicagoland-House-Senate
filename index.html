@@ -546,10 +546,10 @@ function onEachFeature(feature, layer) {
       if (selectedPrecinctLayer !== e.target) {
         e.target.setStyle(highlightStyle());
         e.target.bringToFront();
-        // Also highlight sibling split CD layers (no border to avoid internal seam)
+        // Also highlight sibling split CD layers
         findSiblingLayers(feature.properties.name).forEach(function(sib) {
           if (selectedPrecinctLayer !== sib) {
-            sib.setStyle(siblingHighlightStyle());
+            sib.setStyle(highlightStyle());
           }
         });
       }
@@ -625,9 +625,9 @@ function onEachFeature(feature, layer) {
         selectedPrecinctLayer = e.target;
         e.target.setStyle(highlightStyle());
         e.target.bringToFront();
-        // Also highlight sibling split CD layers (no border to avoid internal seam)
+        // Also highlight sibling split CD layers
         findSiblingLayers(feature.properties.name).forEach(function(sib) {
-          sib.setStyle(siblingHighlightStyle());
+          sib.setStyle(highlightStyle());
         });
         var clickRace = getPrecinctRace(feature.properties);
         if (clickRace) {
