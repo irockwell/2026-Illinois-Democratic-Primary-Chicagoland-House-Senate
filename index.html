@@ -348,8 +348,8 @@ function updatePointerEvents() {
     var p = l.feature.properties;
     var race = getPrecinctRace(p);
     var isInactive = !activeCounties.has(getJurisdiction(p));
-    var isTransparentSplit = !race && p.name && p.name.indexOf('_CD') >= 0;
-    l._path.style.pointerEvents = (isInactive || isTransparentSplit) ? 'none' : '';
+    var noRace = !race;
+    l._path.style.pointerEvents = (isInactive || noRace) ? 'none' : '';
   });
 }
 
@@ -413,7 +413,7 @@ function buildLegend() {
 }
 
 function getDisplayName(props) {
-  var label = props.name;
+  var label = props.name.replace(/_CD\d+$/, '');
   if (props.jurisdiction !== 'chicago' && props.municipality && props.municipality !== 'Unincorporated') {
     label += ' (' + props.municipality + ')';
   }
