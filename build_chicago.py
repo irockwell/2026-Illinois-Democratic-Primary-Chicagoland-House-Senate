@@ -13,33 +13,33 @@ TURNOUT_FILE = "download-10.xls"
 # Race definitions: race_key -> (filename, candidate_list)
 # Candidate lists match Suburban Cook ordering for consistent coloring
 RACES = {
-    "race6": ("download-11.xls", [
+    "race6": ("download-20.xls", [
         "Juliana Stratton", "Raja Krishnamoorthi", "Robin Kelly", "Kevin Ryan",
         "Sean Brown", "Bryan Maxwell", "Christopher Swann", "Awisi A. Bustos",
         "Jonathan Dean", "Steve Botsford Jr."
     ]),
-    "race7": ("download-17.xls", [
+    "race7": ("download-24.xls", [
         "La Shawn K. Ford", "Kina Collins", "Melissa Conyears-Ervin",
         "Anthony Driver, Jr.", "Thomas Fisher", "Jason Friedman",
         "Reed Showalter", "Anabel Mendoza", "Richard R. Boykin",
         "Rory Hoskins", "Jazmin J. Robinson", "David Ehrlich", "Felix Tello"
     ]),
-    "race8": ("download-13.xls", [
+    "race8": ("download-21.xls", [
         "Donna Miller", "Eric France", "Robert Peters", "Willie Preston",
         "Jesse Louis Jackson, Jr.", "Yumeka Brown",
         'Patrick J. "PJK" Keating', "Toni C. Brown", "Sidney Moore", "Adal Regis"
     ]),
-    "race12": ("download-15.xls", [
+    "race12": ("download-22.xls", [
         "Mike Quigley", "Matthew Conroy", "Anthony Michael Tamez", "Ellen A. Corley"
     ]),
-    "race13": ("download-16.xls", [
+    "race13": ("download-23.xls", [
         "Sean Casten", 'Joseph "Joey" Ruzevich'
     ]),
-    "race14": ("download-18.xls", [
+    "race14": ("download-25.xls", [
         "Neil Khot", "Yasmeen Bankole", "Kevin B. Morrison", "Dan Tully",
         "Ryan Vetticad", "Melissa L. Bean", "Junaid Ahmed", "Sanjyot Dunung"
     ]),
-    "race15": ("download-19.xls", [
+    "race15": ("download-26.xls", [
         "Daniel Biss", "Justin Ford", "Mike Simmons", "Bushra Amiwala",
         "Patricia A. Brown", "Jeff Cohen", "Laura Fine", "Phil Andrew",
         "Nick Pyati", "Kat Abughazaleh", "Sam Polan", "Bethany Johnson",
