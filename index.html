@@ -823,14 +823,19 @@ Promise.all([
   });
 
   // Ward boundaries
+  var wardLabelMarkers = {};
   wardLayerRef = L.geoJSON(wardData, {
     style: { fillColor: 'transparent', fillOpacity: 0, weight: 1.5, color: '#8b4513', opacity: 0.6 },
     interactive: false, pane: 'muniPane',
     onEachFeature: function(feature, layer) {
-      if (feature.properties.name) {
-        layer.bindTooltip(feature.properties.name, {
-          permanent: true, direction: 'center', className: 'muni-label'
+      var p = feature.properties;
+      if (p.name && p.label_lat != null && p.label_lon != null) {
+        var marker = L.marker([p.label_lat, p.label_lon], {
+          icon: L.divIcon({ className: 'muni-label', html: p.name, iconSize: null }),
+          interactive: false, pane: 'muniPane'
         });
+        wardLabelMarkers[p.name] = marker;
+        layer._wardLabelMarker = marker;
       }
     }
   });
@@ -952,16 +957,20 @@ Promise.all([
     }
     if (wardLayerRef) {
       wardLayerRef.eachLayer(function(layer) {
-        var wardName = layer.feature.properties.name;
-        var inDistrict = enabled && activeWards.has(wardName);
+        var wName = layer.feature.properties.name;
+        var inDistrict = enabled && activeWards.has(wName);
         layer.setStyle({
           weight: inDistrict ? 1.5 : 0,
           opacity: inDistrict ? 0.6 : 0
         });
-        var tip = layer.getTooltip();
-        if (tip) {
-          var el = tip.getElement();
-          if (el) el.style.display = (show && inDistrict) ? '' : 'none';
+        // Show/hide label marker
+        var marker = wardLabelMarkers[wName];
+        if (marker) {
+          if (show && inDistrict) {
+            if (!map.hasLayer(marker)) marker.addTo(map);
+          } else {
+            if (map.hasLayer(marker)) marker.removeFrom(map);
+          }
         }
       });
     }
