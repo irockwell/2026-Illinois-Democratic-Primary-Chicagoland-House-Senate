@@ -148,30 +148,34 @@
     <span class="race-btn" data-race="race15">9th Dist.</span>
     <span class="race-btn" data-race="race16">10th Dist.</span>
   </div>
-  <div class="section" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:11px">
-    <span style="color:#666;white-space:nowrap">Counties:</span>
-    <label style="cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" class="county-toggle" value="cook" checked style="margin-right:1px;vertical-align:middle" />Suburban Cook
-    </label>
-    <label style="cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" class="county-toggle" value="chicago" checked style="margin-right:1px;vertical-align:middle" />Chicago
-    </label>
-    <label style="cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" class="county-toggle" value="dupage" checked style="margin-right:1px;vertical-align:middle" />DuPage
-    </label>
-    <label style="cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" class="county-toggle" value="lake" checked style="margin-right:1px;vertical-align:middle" />Lake
-    </label>
-    <label style="cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" class="county-toggle" value="mchenry" checked style="margin-right:1px;vertical-align:middle" />McHenry
-    </label>
-    <label style="cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" class="county-toggle" value="will" checked style="margin-right:1px;vertical-align:middle" />Will
-    </label>
-    <label style="cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" class="county-toggle" value="kane" checked style="margin-right:1px;vertical-align:middle" />Kane
-    </label>
-    <a href="#" id="county-select-toggle" style="font-size:10px;margin-left:2px;white-space:nowrap">Deselect all</a>
+  <div class="section" style="font-size:11px">
+    <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">
+      <span style="color:#666;white-space:nowrap">Counties:</span>
+      <a href="#" id="county-select-toggle" style="font-size:10px;white-space:nowrap">Deselect all</a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,auto);gap:1px 10px;justify-content:start">
+      <label style="cursor:pointer;white-space:nowrap;user-select:none">
+        <input type="checkbox" class="county-toggle" value="chicago" checked style="margin-right:1px;vertical-align:middle" />Chicago
+      </label>
+      <label style="cursor:pointer;white-space:nowrap;user-select:none">
+        <input type="checkbox" class="county-toggle" value="cook" checked style="margin-right:1px;vertical-align:middle" />Suburban Cook
+      </label>
+      <label style="cursor:pointer;white-space:nowrap;user-select:none">
+        <input type="checkbox" class="county-toggle" value="dupage" checked style="margin-right:1px;vertical-align:middle" />DuPage
+      </label>
+      <label style="cursor:pointer;white-space:nowrap;user-select:none">
+        <input type="checkbox" class="county-toggle" value="lake" checked style="margin-right:1px;vertical-align:middle" />Lake
+      </label>
+      <label style="cursor:pointer;white-space:nowrap;user-select:none">
+        <input type="checkbox" class="county-toggle" value="mchenry" checked style="margin-right:1px;vertical-align:middle" />McHenry
+      </label>
+      <label style="cursor:pointer;white-space:nowrap;user-select:none">
+        <input type="checkbox" class="county-toggle" value="will" checked style="margin-right:1px;vertical-align:middle" />Will
+      </label>
+      <label style="cursor:pointer;white-space:nowrap;user-select:none">
+        <input type="checkbox" class="county-toggle" value="kane" checked style="margin-right:1px;vertical-align:middle" />Kane
+      </label>
+    </div>
   </div>
   <div class="section" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
     <label style="font-size:11px;cursor:pointer;white-space:nowrap;user-select:none">
