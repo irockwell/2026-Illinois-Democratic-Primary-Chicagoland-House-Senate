@@ -177,19 +177,21 @@
       </label>
     </div>
   </div>
-  <div class="section" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-    <label style="font-size:11px;cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" id="muni-toggle" style="margin-right:3px;vertical-align:middle" />Municipalities
-    </label>
-    <label style="font-size:11px;cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" id="community-toggle" style="margin-right:3px;vertical-align:middle" />Chicago Community Areas
-    </label>
-    <label style="font-size:11px;cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" id="ward-toggle" style="margin-right:3px;vertical-align:middle" />Chicago Wards
-    </label>
-    <label style="font-size:11px;cursor:pointer;white-space:nowrap;user-select:none">
-      <input type="checkbox" id="chicago-outline-toggle" checked style="margin-right:3px;vertical-align:middle" />Chicago Outline
-    </label>
+  <div class="section" style="font-size:11px">
+    <div style="display:grid;grid-template-columns:repeat(2,auto);gap:1px 8px;justify-content:start">
+      <label style="cursor:pointer;white-space:nowrap;user-select:none">
+        <input type="checkbox" id="muni-toggle" style="margin-right:1px;vertical-align:middle" />Municipalities
+      </label>
+      <label style="cursor:pointer;white-space:nowrap;user-select:none">
+        <input type="checkbox" id="community-toggle" style="margin-right:1px;vertical-align:middle" />Chicago Community Areas
+      </label>
+      <label style="cursor:pointer;white-space:nowrap;user-select:none">
+        <input type="checkbox" id="ward-toggle" style="margin-right:1px;vertical-align:middle" />Chicago Wards
+      </label>
+      <label style="cursor:pointer;white-space:nowrap;user-select:none">
+        <input type="checkbox" id="chicago-outline-toggle" checked style="margin-right:1px;vertical-align:middle" />Chicago Outline
+      </label>
+    </div>
   </div>
   <div style="padding-top:8px;position:relative">
     <input type="text" id="muni-search" placeholder="Search municipality..." autocomplete="off" />
