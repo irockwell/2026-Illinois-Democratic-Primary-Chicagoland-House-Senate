@@ -319,6 +319,30 @@ def main():
         json.dump(muni_output, f, separators=(",", ":"))
     print(f"Written to {MUNI_OUTPUT_FILE} ({len(muni_features)} municipalities)")
 
+    # ── Clip ADDISON 6 to remove O'Hare overlap with Chicago 41-1 ──────────
+    print("\nClipping ADDISON 6 at O'Hare...")
+    try:
+        chi_data = json.load(open("chicago_election_data.json"))
+        chi41 = None
+        for cf in chi_data["features"]:
+            if cf["properties"]["name"] == "CHICAGO 41-1":
+                chi41 = shape(cf["geometry"])
+                break
+        if chi41:
+            for of in features_out:
+                if of["properties"]["name"] == "ADDISON 6":
+                    orig = shape(of["geometry"])
+                    clipped = orig.difference(chi41)
+                    of["geometry"] = round_coords(mapping(clipped))
+                    print(f"  Clipped ADDISON 6: {orig.area:.6f} -> {clipped.area:.6f}")
+                    break
+            # Re-write the output with clipped geometry
+            output = {"type": "FeatureCollection", "features": features_out}
+            with open(OUTPUT_FILE, "w") as f:
+                json.dump(output, f, separators=(",", ":"))
+    except FileNotFoundError:
+        print("  chicago_election_data.json not found, skipping clip")
+
     # ── Summary ─────────────────────────────────────────────────────────────
     print("\n=== SUMMARY ===")
     for race_key, info in RACE_SHEETS.items():
