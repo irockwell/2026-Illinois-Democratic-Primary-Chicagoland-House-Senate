@@ -1261,11 +1261,12 @@ function getMuniTotals(muniName, race) {
   var cfg = RACE_CONFIG[race];
   var totals = {};
   cfg.candidates.forEach(function(c) { totals[c] = 0; });
-  var registered = 0, ballots = 0, precinctCount = 0;
+  var registered = 0, ballots = 0, precinctCount = 0, countedPrecincts = {};
   electionData.features.forEach(function(f) {
     var p = f.properties;
     if (p.municipality === muniName && p[cfg.flag]) {
-      precinctCount++;
+      var baseName = p.name.replace(/_CD\d+$/, '');
+      if (!countedPrecincts[baseName]) { countedPrecincts[baseName] = true; precinctCount++; }
       registered += p[cfg.prefix + "registered"] || 0;
       ballots += p[cfg.prefix + "ballots"] || 0;
       cfg.candidates.forEach(function(c) {
@@ -1436,13 +1437,14 @@ function getWardTotals(wardNum, race) {
   var cfg = RACE_CONFIG[race];
   var totals = {};
   cfg.candidates.forEach(function(c) { totals[c] = 0; });
-  var registered = 0, ballots = 0, precinctCount = 0;
+  var registered = 0, ballots = 0, precinctCount = 0, countedPrecincts = {};
   electionData.features.forEach(function(f) {
     var p = f.properties;
     if (p.jurisdiction !== 'chicago' || !p[cfg.flag]) return;
     var m = p.name.match(/^CHICAGO (\d+)-/);
     if (!m || parseInt(m[1]) !== wardNum) return;
-    precinctCount++;
+    var baseName = p.name.replace(/_CD\d+$/, '');
+    if (!countedPrecincts[baseName]) { countedPrecincts[baseName] = true; precinctCount++; }
     registered += p[cfg.prefix + "registered"] || 0;
     ballots += p[cfg.prefix + "ballots"] || 0;
     cfg.candidates.forEach(function(c) {
