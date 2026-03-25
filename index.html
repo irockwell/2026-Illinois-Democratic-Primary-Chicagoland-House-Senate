@@ -381,11 +381,18 @@ function buildLegendForRace(race) {
   var totals = {};
   cfg.candidates.forEach(function(c) { totals[c] = 0; });
   var grandTotal = 0;
+  var countedBases = {};
   if (electionData) {
     electionData.features.forEach(function(f) {
       var p = f.properties;
       if (!activeCounties.has(getJurisdiction(p))) return;
       if (p[cfg.flag]) {
+        // Skip duplicate split CD precincts (both halves carry full vote totals for shared races)
+        var baseName = p.name.replace(/_CD\d+$/, '');
+        var raceKey = cfg.flag;
+        var dedupeKey = baseName + '|' + raceKey;
+        if (countedBases[dedupeKey]) return;
+        countedBases[dedupeKey] = true;
         if (p[cfg.prefix + "winner"]) winners.add(p[cfg.prefix + "winner"]);
         cfg.candidates.forEach(function(c) {
           var v = p[cfg.prefix + c] || 0;
@@ -1266,12 +1273,15 @@ function getMuniTotals(muniName, race) {
     var p = f.properties;
     if (p.municipality === muniName && p[cfg.flag]) {
       var baseName = p.name.replace(/_CD\d+$/, '');
-      if (!countedPrecincts[baseName]) { countedPrecincts[baseName] = true; precinctCount++; }
-      registered += p[cfg.prefix + "registered"] || 0;
-      ballots += p[cfg.prefix + "ballots"] || 0;
-      cfg.candidates.forEach(function(c) {
-        totals[c] += p[cfg.prefix + c] || 0;
-      });
+      if (!countedPrecincts[baseName]) {
+        countedPrecincts[baseName] = true;
+        precinctCount++;
+        registered += p[cfg.prefix + "registered"] || 0;
+        ballots += p[cfg.prefix + "ballots"] || 0;
+        cfg.candidates.forEach(function(c) {
+          totals[c] += p[cfg.prefix + c] || 0;
+        });
+      }
     }
   });
   var total = 0;
@@ -1444,12 +1454,15 @@ function getWardTotals(wardNum, race) {
     var m = p.name.match(/^CHICAGO (\d+)-/);
     if (!m || parseInt(m[1]) !== wardNum) return;
     var baseName = p.name.replace(/_CD\d+$/, '');
-    if (!countedPrecincts[baseName]) { countedPrecincts[baseName] = true; precinctCount++; }
-    registered += p[cfg.prefix + "registered"] || 0;
-    ballots += p[cfg.prefix + "ballots"] || 0;
-    cfg.candidates.forEach(function(c) {
-      totals[c] += p[cfg.prefix + c] || 0;
-    });
+    if (!countedPrecincts[baseName]) {
+      countedPrecincts[baseName] = true;
+      precinctCount++;
+      registered += p[cfg.prefix + "registered"] || 0;
+      ballots += p[cfg.prefix + "ballots"] || 0;
+      cfg.candidates.forEach(function(c) {
+        totals[c] += p[cfg.prefix + c] || 0;
+      });
+    }
   });
   var total = 0;
   cfg.candidates.forEach(function(c) { total += totals[c]; });
