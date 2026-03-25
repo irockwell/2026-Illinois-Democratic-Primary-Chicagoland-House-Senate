@@ -3,24 +3,24 @@
 
 import json
 import urllib.request
-import xml.etree.ElementTree as ET
+import openpyxl
 from shapely.geometry import shape, mapping, Polygon, MultiPolygon
 from shapely.validation import make_valid
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 PRECINCT_URL = "https://maps.lakecountyil.gov/arcgis/rest/services/GISMapping/WABPoliticalBoundaries/MapServer/5/query"
 MUNI_URL = "https://maps.lakecountyil.gov/arcgis/rest/services/GISMapping/WABBoundaries/MapServer/1/query"
-DETAIL_FILE = "lake_data/detailwithoutvotetypes.xls"
+DETAIL_FILE = "Lake All Races 3-24-26.xlsx"
 OUTPUT_FILE = "lake_election_data.json"
 MUNI_OUTPUT_FILE = "lake_municipalities.json"
 
-# XML spreadsheet sheet indices for DEM races
+# XLSX sheet names for DEM races
 # From Table of Contents: 11=Senate, 17=CD-5, 19=CD-9, 21=CD-10
 RACE_SHEETS = {
-    "race6":  {"sheet_idx": 11, "title": "Senate"},
-    "race12": {"sheet_idx": 17, "title": "CD-5"},
-    "race15": {"sheet_idx": 19, "title": "CD-9"},
-    "race16": {"sheet_idx": 21, "title": "CD-10"},
+    "race6":  {"sheet_name": "11", "title": "Senate"},
+    "race12": {"sheet_name": "17", "title": "CD-5"},
+    "race15": {"sheet_name": "19", "title": "CD-9"},
+    "race16": {"sheet_name": "21", "title": "CD-10"},
 }
 
 ALL_RACE_KEYS = ['race6','race7','race8','race9','race10','race11',
@@ -51,31 +51,39 @@ def download_geojson(base_url, max_records=1000):
     return {"type": "FeatureCollection", "features": all_features}
 
 
-def parse_xml_sheet(tree, sheet_idx):
-    """Parse an XML spreadsheet sheet into {precinct_number: {candidate: votes}}.
+def parse_xlsx_sheet(workbook, sheet_name):
+    """Parse an XLSX sheet into {precinct_number: {candidate: votes}}.
 
-    Format: Row 1=race title, Row 2=candidate names, Row 3=headers, Row 4+=data
-    Data rows: col0=precinct_name (e.g. "Antioch 1"), col1=registered, col2+=votes
+    Format: Row 1=race title, Row 2=candidate names (spaced every 5 cols),
+    Row 3=sub-headers (Election Day, Early Voting, VBM, Late VBM, Total Votes per candidate),
+    Row 4+=data.  Last column = grand total for row.
+    Data rows: col0=precinct_name (e.g. "Antioch 1"), col1=registered, then 5 cols per candidate, then Total.
+    We extract each candidate's "Total Votes" sub-column (offset +4 from their start).
     """
-    ns = {'s': 'urn:schemas-microsoft-com:office:spreadsheet'}
-    sheets = tree.findall('.//s:Worksheet', ns)
-    sheet = sheets[sheet_idx]
+    ws = workbook[sheet_name]
+    rows = list(ws.iter_rows(values_only=True))
 
-    rows = sheet.findall('.//s:Row', ns)
-
-    # Row 2 (index 1): candidate names
+    # Row 2 (index 1): candidate names spread across merged-style cells
     cand_row = rows[1]
-    cand_cells = cand_row.findall('.//s:Cell/s:Data', ns)
-    candidates = [c.text.strip() for c in cand_cells if c.text and c.text.strip()]
+    # Candidates appear at columns 2, 7, 12, ... (every 5 starting at col index 2)
+    candidates = []
+    cand_total_cols = []  # column indices for each candidate's "Total Votes"
+    col = 2
+    while col < len(cand_row):
+        name = cand_row[col]
+        if name is not None and str(name).strip():
+            candidates.append(str(name).strip())
+            cand_total_cols.append(col + 4)  # "Total Votes" is 5th sub-col (offset +4)
+            col += 5
+        else:
+            col += 1
 
     # Data rows start at index 3
     results = {}
     for row in rows[3:]:
-        cells = row.findall('.//s:Cell/s:Data', ns)
-        vals = [c.text for c in cells]
-        if not vals or not vals[0]:
+        if not row or not row[0]:
             continue
-        precinct_name = vals[0].strip()
+        precinct_name = str(row[0]).strip()
         if precinct_name in ("Total:", "Total", ""):
             continue
 
@@ -88,9 +96,9 @@ def parse_xml_sheet(tree, sheet_idx):
         except ValueError:
             continue
 
-        # vals[1] = registered voters, vals[2:] = candidate votes
+        # col 1 = registered voters
         try:
-            registered = int(float(vals[1])) if len(vals) > 1 and vals[1] else 0
+            registered = int(row[1]) if row[1] is not None else 0
         except (ValueError, TypeError):
             registered = 0
 
@@ -98,8 +106,8 @@ def parse_xml_sheet(tree, sheet_idx):
         total = 0
         for i, cand in enumerate(candidates):
             try:
-                v = int(float(vals[2 + i])) if len(vals) > 2 + i and vals[2 + i] else 0
-            except (ValueError, TypeError):
+                v = int(row[cand_total_cols[i]]) if row[cand_total_cols[i]] is not None else 0
+            except (ValueError, TypeError, IndexError):
                 v = 0
             votes[cand] = v
             total += v
@@ -172,13 +180,13 @@ def main():
 
     # ── Parse election results ──────────────────────────────────────────────
     print(f"\nParsing {DETAIL_FILE}...")
-    tree = ET.parse(DETAIL_FILE)
+    wb = openpyxl.load_workbook(DETAIL_FILE)
 
     all_results = {}
     all_candidates = {}
     for race_key, info in RACE_SHEETS.items():
-        print(f"  {race_key} ({info['title']}, sheet idx {info['sheet_idx']})...")
-        candidates, results = parse_xml_sheet(tree, info["sheet_idx"])
+        print(f"  {race_key} ({info['title']}, sheet {info['sheet_name']})...")
+        candidates, results = parse_xlsx_sheet(wb, info["sheet_name"])
         all_results[race_key] = results
         all_candidates[race_key] = candidates
         print(f"    {len(candidates)} candidates, {len(results)} precincts")

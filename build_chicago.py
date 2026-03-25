@@ -8,38 +8,38 @@ import xlrd
 # ── Configuration ──────────────────────────────────────────────────────────────
 GEOJSON_URL = "https://data.cityofchicago.org/resource/i8fv-xe4b.geojson?$limit=5000"
 OUTPUT_FILE = "chicago_election_data.json"
-TURNOUT_FILE = "download-28.xls"
+TURNOUT_FILE = "Chicago Turnout 3-24-26.xls"
 
 # Race definitions: race_key -> (filename, candidate_list)
 # Candidate lists match Suburban Cook ordering for consistent coloring
 RACES = {
-    "race6": ("download-20.xls", [
+    "race6": ("Senate Chicago 3-24-26.xls", [
         "Juliana Stratton", "Raja Krishnamoorthi", "Robin Kelly", "Kevin Ryan",
         "Sean Brown", "Bryan Maxwell", "Christopher Swann", "Awisi A. Bustos",
         "Jonathan Dean", "Steve Botsford Jr."
     ]),
-    "race7": ("download-24.xls", [
+    "race7": ("Chicago CD 7 3-24-26.xls", [
         "La Shawn K. Ford", "Kina Collins", "Melissa Conyears-Ervin",
         "Anthony Driver, Jr.", "Thomas Fisher", "Jason Friedman",
         "Reed Showalter", "Anabel Mendoza", "Richard R. Boykin",
         "Rory Hoskins", "Jazmin J. Robinson", "David Ehrlich", "Felix Tello"
     ]),
-    "race8": ("download-21.xls", [
+    "race8": ("Chicago CD 2 3-24-26.xls", [
         "Donna Miller", "Eric France", "Robert Peters", "Willie Preston",
         "Jesse Louis Jackson, Jr.", "Yumeka Brown",
         'Patrick J. "PJK" Keating', "Toni C. Brown", "Sidney Moore", "Adal Regis"
     ]),
-    "race12": ("download-22.xls", [
+    "race12": ("Chicago CD 5 3-24-26.xls", [
         "Mike Quigley", "Matthew Conroy", "Anthony Michael Tamez", "Ellen A. Corley"
     ]),
-    "race13": ("download-23.xls", [
+    "race13": ("Chicago CD 6 3-24-26.xls", [
         "Sean Casten", 'Joseph "Joey" Ruzevich'
     ]),
-    "race14": ("download-25.xls", [
+    "race14": ("Chicago CD 8 3-24-26.xls", [
         "Neil Khot", "Yasmeen Bankole", "Kevin B. Morrison", "Dan Tully",
         "Ryan Vetticad", "Melissa L. Bean", "Junaid Ahmed", "Sanjyot Dunung"
     ]),
-    "race15": ("download-26.xls", [
+    "race15": ("Chicago CD 9 3-24-26.xls", [
         "Daniel Biss", "Justin Ford", "Mike Simmons", "Bushra Amiwala",
         "Patricia A. Brown", "Jeff Cohen", "Laura Fine", "Phil Andrew",
         "Nick Pyati", "Kat Abughazaleh", "Sam Polan", "Bethany Johnson",

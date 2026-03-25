@@ -6,17 +6,17 @@ from shapely.geometry import shape, Point
 # --- Configuration ---
 # Maps internal race key -> (file, district label)
 RACE_FILES = {
-    'race6':  ('ElectionResults-6.xlsx',  'Senator, U.S.'),
-    'race7':  ('ElectionResults-7.xlsx',  'U.S. Representative, 7th District'),
-    'race8':  ('ElectionResults-8.xlsx',  'U.S. Representative, 2nd District'),
+    'race6':  ('Suburban Cook 3-24-26 Senate.xlsx',  'Senator, U.S.'),
+    'race7':  ('CD 7 Suburban Cook 3-24-26.xlsx',  'U.S. Representative, 7th District'),
+    'race8':  ('CD 2 Suburban Cook 3-24-26.xlsx',  'U.S. Representative, 2nd District'),
     'race9':  ('ElectionResults-9.xlsx',  'U.S. Representative, 1st District'),
     'race10': ('ElectionResults-10.xlsx', 'U.S. Representative, 3rd District'),
     'race11': ('ElectionResults-11.xlsx', 'U.S. Representative, 4th District'),
-    'race12': ('ElectionResults-12.xlsx', 'U.S. Representative, 5th District'),
-    'race13': ('ElectionResults-13.xlsx', 'U.S. Representative, 6th District'),
-    'race14': ('ElectionResults-14.xlsx', 'U.S. Representative, 8th District'),
-    'race15': ('ElectionResults-15.xlsx', 'U.S. Representative, 9th District'),
-    'race16': ('ElectionResults-16.xlsx', 'U.S. Representative, 10th District'),
+    'race12': ('CD 5 Suburban Cook 3-24-26.xlsx', 'U.S. Representative, 5th District'),
+    'race13': ('CD 6 Suburban Cook 3-24-26.xlsx', 'U.S. Representative, 6th District'),
+    'race14': ('CD 8 Suburban Cook 3-24-26.xlsx', 'U.S. Representative, 8th District'),
+    'race15': ('CD 9 Suburban Cook 3-24-26.xlsx', 'U.S. Representative, 9th District'),
+    'race16': ('CD 10 Suburban Cook 3-24-26.xlsx', 'U.S. Representative, 10th District'),
     'race17': ('ElectionResults-17.xlsx', 'U.S. Representative, 11th District'),
 }
 

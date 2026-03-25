@@ -10,7 +10,7 @@ from shapely.validation import make_valid
 # ── Configuration ──────────────────────────────────────────────────────────────
 PRECINCT_URL = "https://gis.dupageco.org/arcgis/rest/services/DuPage_County_IL/Election_Precincts/MapServer/0/query"
 MUNI_URL = "https://gis.dupageco.org/arcgis/rest/services/DuPage_County_IL/Municipality/MapServer/0/query"
-DETAIL_FILE = "dupage_data/detail.xlsx"
+DETAIL_FILE = "DuPage All Races 3-24-26.xlsx"
 OUTPUT_FILE = "dupage_election_data.json"
 MUNI_OUTPUT_FILE = "dupage_municipalities.json"
 
@@ -36,6 +36,7 @@ NAME_MAP = {
     "JONATHAN DEAN": "Jonathan Dean",
     "STEVE BOTSFORD JR.": "Steve Botsford Jr.",
     "ADAM DELGADO": "Adam Delgado",
+    "Adam Delgado (Write-In)": "Adam Delgado",
     # CD-6
     "SEAN CASTEN": "Sean Casten",
     'JOSEPH "JOEY" RUZEVICH': 'Joseph "Joey" Ruzevich',
@@ -109,14 +110,14 @@ def parse_dupage_sheet(wb, sheet_name):
         if precinct_name is None:
             continue
         precinct_name = str(precinct_name).strip()
-        if not precinct_name or precinct_name in ("Total", ""):
+        if not precinct_name or precinct_name.startswith("Total"):
             continue
 
-        # Parse "Addison 001 - 0137" -> "Addison 1"
-        parts = precinct_name.split(" - ")
-        if len(parts) != 2:
+        # Handle both old format "Addison 001 - 0137" and new format "Addison 001"
+        # Also skip FEDERAL rows like "FEDERAL - F06"
+        if precinct_name.startswith("FEDERAL"):
             continue
-        twp_prec = parts[0].strip()  # "Addison 001"
+        twp_prec = precinct_name.split(" - ")[0].strip()  # works for both formats
         # Split into township name and precinct number
         tokens = twp_prec.rsplit(" ", 1)
         if len(tokens) != 2:
