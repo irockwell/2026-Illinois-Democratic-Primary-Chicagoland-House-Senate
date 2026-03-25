@@ -191,6 +191,13 @@ def main():
         all_candidates[race_key] = candidates
         print(f"    {len(candidates)} candidates, {len(results)} precincts")
 
+    # ── Build precinct name lookup from election results ─────────────────────
+    prec_name_lookup = {}  # precinct_number -> "Township N" name
+    for race_key, results in all_results.items():
+        for prec_num, data in results.items():
+            if prec_num not in prec_name_lookup:
+                prec_name_lookup[prec_num] = data["precinct_name"].upper()
+
     # ── Build output features ───────────────────────────────────────────────
     print("\nMerging data...")
     features_out = []
@@ -201,8 +208,11 @@ def main():
         prec_num = p["PRECINCT"]
         muni = p.get("_municipality", "Unincorporated")
 
+        # Use election-data name if available, otherwise fall back to LAKE N
+        display_name = prec_name_lookup.get(prec_num, f"LAKE {prec_num}")
+
         new_props = {
-            "name": f"LAKE {prec_num}",
+            "name": display_name,
             "municipality": muni,
             "jurisdiction": "lake"
         }
