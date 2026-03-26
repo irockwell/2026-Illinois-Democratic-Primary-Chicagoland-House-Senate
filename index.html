@@ -1296,7 +1296,7 @@ function showMuniPanel(muniName, pinned, race) {
   var panel = document.getElementById("muni-panel");
   var data = getMuniTotals(muniName, race);
   if (data.precinctCount === 0) { panel.style.display = "none"; return; }
-  var maxCandidates = 4;
+  var maxCandidates = (race === 'race7') ? 6 : 4;
 
   var cVotes = cfg.candidates
     .map(function(c) { return { name: c, votes: data.totals[c] }; })
@@ -1484,7 +1484,7 @@ function showWardPanel(wardName, pinned, race) {
   var panel = document.getElementById("ward-panel");
   var data = getWardTotals(wardNum, race);
   if (data.precinctCount === 0) { panel.style.display = "none"; return; }
-  var maxCandidates = 4;
+  var maxCandidates = (race === 'race7') ? 6 : 4;
 
   var cVotes = cfg.candidates
     .map(function(c) { return { name: c, votes: data.totals[c] }; })
